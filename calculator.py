@@ -25,6 +25,10 @@ class Literal(Expr):
         """ """
         return self.value
 
+    def typecheck(self) -> str:
+        """ """
+        pass
+
 
 class Plus(Expr):
     def __init__(self, left: Expr, right: Expr) -> None:
@@ -53,7 +57,14 @@ class Plus(Expr):
     def compile(self) -> str:
         """ """
         return f"({self.left.compile()} + {self.right.compile()})"
-        
+
+    def typecheck(self) -> str:
+        """ """
+        if isinstance(self.left, Print) or isinstance(self.right, Print):
+            raise TypeError("Cannot add to None")
+
+        self.left.typecheck()
+        self.right.typecheck()
 
 
 class Times(Expr):
@@ -84,6 +95,14 @@ class Times(Expr):
         """ """
         return f"({self.left.compile()} * {self.right.compile()})"
 
+    def typecheck(self) -> str:
+        """ """
+        if isinstance(self.left, Print) or isinstance(self.right, Print):
+            raise TypeError("Cannot multiply to None")
+
+        self.left.typecheck()
+        self.right.typecheck()
+
 
 class GetNumber(Expr):
     def __repr__(self) -> None:
@@ -101,6 +120,10 @@ class GetNumber(Expr):
     def compile(self) -> str:
         """ """
         return "int(input())"
+
+    def typecheck(self) -> str:
+        """ """
+        pass
 
 
 class Print(Expr):
@@ -124,6 +147,10 @@ class Print(Expr):
         """ """
         return f"print({self.value.compile()})"
 
+    def typecheck(self) -> str:
+        """ """
+        pass
+
 
 if __name__ == "__main__":
-    print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())).compile())
+    Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())).typecheck()
