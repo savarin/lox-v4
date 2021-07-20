@@ -17,6 +17,10 @@ class Literal(Expr):
         """ """
         return self.value
 
+    def optimize(self) -> Expr:
+        """ """
+        return self
+
 
 class Plus(Expr):
     def __init__(self, left: Expr, right: Expr) -> None:
@@ -31,6 +35,17 @@ class Plus(Expr):
     def eval(self) -> Expr:
         """ """
         return self.left.eval() + self.right.eval()
+
+    def optimize(self) -> Expr:
+        """ """
+        self.left = self.left.optimize()
+        self.right = self.right.optimize()
+
+        if isinstance(self.left, Literal) and isinstance(self.right, Literal):
+            return Literal(self.left.value + self.right.value)
+
+        return self
+        
 
 
 class Times(Expr):
@@ -47,6 +62,16 @@ class Times(Expr):
         """ """
         return self.left.eval() * self.right.eval()
 
+    def optimize(self) -> Expr:
+        """ """
+        self.left = self.left.optimize()
+        self.right = self.right.optimize()
+
+        if isinstance(self.left, Literal) and isinstance(self.right, Literal):
+            return Literal(self.left.value * self.right.value)
+
+        return self
+
 
 class GetNumber(Expr):
     def __repr__(self) -> None:
@@ -56,6 +81,10 @@ class GetNumber(Expr):
     def eval(self) -> int:
         """ """
         return int(input("enter a number: "))
+
+    def optimize(self) -> Expr:
+        """ """
+        return self
 
 
 class Print(Expr):
@@ -71,6 +100,10 @@ class Print(Expr):
         """ """
         print(self.value.eval())
 
+    def optimize(self) -> Expr:
+        """ """
+        return self
+
 
 if __name__ == "__main__":
-    print(Print(Plus(Times(Literal(13), Literal(2)), Times(GetNumber(), Literal(7)))))
+    print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), Literal(3))).optimize())
