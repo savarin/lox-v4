@@ -21,6 +21,10 @@ class Literal(Expr):
         """ """
         return self
 
+    def compile(self) -> str:
+        """ """
+        return self.value
+
 
 class Plus(Expr):
     def __init__(self, left: Expr, right: Expr) -> None:
@@ -45,6 +49,10 @@ class Plus(Expr):
             return Literal(self.left.value + self.right.value)
 
         return self
+
+    def compile(self) -> str:
+        """ """
+        return f"({self.left.compile()} + {self.right.compile()})"
         
 
 
@@ -72,6 +80,10 @@ class Times(Expr):
 
         return self
 
+    def compile(self) -> str:
+        """ """
+        return f"({self.left.compile()} * {self.right.compile()})"
+
 
 class GetNumber(Expr):
     def __repr__(self) -> None:
@@ -85,6 +97,10 @@ class GetNumber(Expr):
     def optimize(self) -> Expr:
         """ """
         return self
+
+    def compile(self) -> str:
+        """ """
+        return "int(input())"
 
 
 class Print(Expr):
@@ -104,6 +120,10 @@ class Print(Expr):
         """ """
         return self
 
+    def compile(self) -> str:
+        """ """
+        return f"print({self.value.compile()})"
+
 
 if __name__ == "__main__":
-    print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), Literal(3))).optimize())
+    print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())).compile())
