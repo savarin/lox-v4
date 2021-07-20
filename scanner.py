@@ -94,13 +94,13 @@ def advance(searcher: Scanner) -> Tuple[Scanner, str]:
 
 def add_token(
     searcher: Scanner,
-    individual_token_type: token_type.TokenType,
+    individual_type: token_type.TokenType,
     literal: Optional[int] = None,
 ) -> Scanner:
     """ """
     text = searcher.source[searcher.start : searcher.current]
 
     assert searcher.tokens is not None
-    searcher.tokens.append(token_class.Token(individual_token_type, text, literal))
+    searcher.tokens.append(token_class.Token(individual_type, text, literal))
 
     return searcher
