@@ -10,13 +10,13 @@ def source_to_expression(source: str) -> expr.Expr:
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan_tokens(searcher)
     processor = parser.init_parser(tokens=tokens)
-    result = parser.parse(processor)
+    parse_tuple = parser.parse(processor)
 
-    assert result is not None
-    return result[1]
+    assert parse_tuple is not None
+    return parse_tuple[1]
 
 
-def test_parser() -> None:
+def test_parse() -> None:
     """ """
     expression = source_to_expression(source="1 - (2 + 3)")
 

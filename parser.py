@@ -89,7 +89,10 @@ def primary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     processor, is_match = match(processor, [token_type.TokenType.NUMBER])
 
     if is_match:
-        return processor, expr.Literal(previous(processor).literal)
+        value = previous(processor).literal
+
+        assert value is not None
+        return processor, expr.Literal(value)
 
     processor, is_match = match(processor, [token_type.TokenType.LEFT_PAREN])
 
