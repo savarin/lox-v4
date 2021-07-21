@@ -20,7 +20,7 @@ def init_scanner(source: str) -> Scanner:
     return Scanner(source=source, tokens=[])
 
 
-def scan_tokens(searcher: Scanner) -> List[token_class.Token]:
+def scan(searcher: Scanner) -> List[token_class.Token]:
     """ """
     while not is_at_end(searcher):
         searcher.start = searcher.current

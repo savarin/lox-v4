@@ -12,7 +12,7 @@ import vm
 def source_to_result(source: str) -> int:
     """ """
     searcher = scanner.init_scanner(source=source)
-    tokens = scanner.scan_tokens(searcher)
+    tokens = scanner.scan(searcher)
     processor = parser.init_parser(tokens=tokens)
     parse_tuple = parser.parse(processor)
 

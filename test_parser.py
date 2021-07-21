@@ -7,7 +7,7 @@ import token_type
 def source_to_expression(source: str) -> expr.Expr:
     """ """
     searcher = scanner.init_scanner(source=source)
-    tokens = scanner.scan_tokens(searcher)
+    tokens = scanner.scan(searcher)
     processor = parser.init_parser(tokens=tokens)
     parse_tuple = parser.parse(processor)
 

@@ -75,15 +75,7 @@ def is_at_end(emulator: VM) -> bool:
 
 def run(emulator: VM) -> int:
     """ """
-    while True:
-        if is_at_end(emulator):
-            assert emulator.top == 1
-            assert emulator.stack is not None
-            result = emulator.stack[0]
-
-            assert result is not None
-            return result
-
+    while not is_at_end(emulator):
         emulator, instruction = read_byte(emulator)
 
         if instruction == compiler.OpCode.OP_CONSTANT:
@@ -106,3 +98,10 @@ def run(emulator: VM) -> int:
             emulator, constant = pop(emulator)
             constant = -constant
             emulator = push(emulator, constant)
+
+    assert emulator.top == 1
+    assert emulator.stack is not None
+    result = emulator.stack[0]
+
+    assert result is not None
+    return result

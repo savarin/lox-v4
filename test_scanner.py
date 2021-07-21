@@ -8,7 +8,7 @@ import token_type
 def source_to_tokens(source: str) -> List[token_class.Token]:
     """ """
     searcher = scanner.init_scanner(source=source)
-    return scanner.scan_tokens(searcher)
+    return scanner.scan(searcher)
 
 
 def test_scan() -> None:
