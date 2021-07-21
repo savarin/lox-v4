@@ -1,7 +1,6 @@
 import expr
 import parser
 import scanner
-import token_class
 import token_type
 
 

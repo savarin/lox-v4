@@ -1,11 +1,8 @@
 from typing import Optional
 
-import expr
 import interpreter
 import parser
 import scanner
-import token_class
-import token_type
 
 
 def source_to_value(source: str) -> Optional[int]:

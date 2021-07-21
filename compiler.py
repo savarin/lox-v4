@@ -1,9 +1,12 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 import dataclasses
 import enum
 
 import expr
 import token_type
+
+
+ByteCode = Union["OpCode", int]
 
 
 class OpCode(enum.Enum):
@@ -38,9 +41,9 @@ def init_compiler(expression: expr.Expr) -> Compiler:
     return Compiler(expression=expression)
 
 
-def compile(composer: Compiler) -> List[Union[OpCode, int]]:
+def compile(composer: Compiler) -> List[ByteCode]:
     """ """
-    bytecode: List[Union[OpCode, int]] = []
+    bytecode: List[ByteCode] = []
 
     def traverse(expression: expr.Expr):
         """ """

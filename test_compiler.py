@@ -1,14 +1,11 @@
-from typing import List, Optional, Union
+from typing import List
 
 import compiler
-import expr
 import parser
 import scanner
-import token_class
-import token_type
 
 
-def source_to_bytecode(source: str) -> List[Union[compiler.OpCode, int]]:
+def source_to_bytecode(source: str) -> List[compiler.ByteCode]:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan_tokens(searcher)
