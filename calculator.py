@@ -3,13 +3,25 @@ class Expr:
         """ """
         pass
 
+    def optimize(self):
+        """ """
+        pass
+
+    def compile(self):
+        """ """
+        pass
+
+    def typecheck(self):
+        """ """
+        pass
+
 
 class Literal(Expr):
     def __init__(self, value: int) -> None:
         """ """
         self.value = value
 
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         """ """
         return f"Literal({str(self.value)})"
 
@@ -21,7 +33,7 @@ class Literal(Expr):
         """ """
         return self
 
-    def compile(self) -> str:
+    def compile(self) -> int:
         """ """
         return self.value
 
@@ -36,7 +48,7 @@ class Plus(Expr):
         self.left = left
         self.right = right
 
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         """ """
         return f"Plus({self.left}, {self.right})"
 
@@ -58,7 +70,7 @@ class Plus(Expr):
         """ """
         return f"({self.left.compile()} + {self.right.compile()})"
 
-    def typecheck(self) -> str:
+    def typecheck(self) -> None:
         """ """
         if isinstance(self.left, Print) or isinstance(self.right, Print):
             raise TypeError("Cannot add to None")
@@ -73,7 +85,7 @@ class Times(Expr):
         self.left = left
         self.right = right
 
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         """ """
         return f"Times({self.left}, {self.right})"
 
@@ -95,7 +107,7 @@ class Times(Expr):
         """ """
         return f"({self.left.compile()} * {self.right.compile()})"
 
-    def typecheck(self) -> str:
+    def typecheck(self) -> None:
         """ """
         if isinstance(self.left, Print) or isinstance(self.right, Print):
             raise TypeError("Cannot multiply to None")
@@ -105,7 +117,7 @@ class Times(Expr):
 
 
 class GetNumber(Expr):
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         """ """
         return "GetNumber()"
 
@@ -121,7 +133,7 @@ class GetNumber(Expr):
         """ """
         return "int(input())"
 
-    def typecheck(self) -> str:
+    def typecheck(self) -> None:
         """ """
         pass
 
@@ -131,7 +143,7 @@ class Print(Expr):
         """ """
         self.value = value
 
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         """ """
         return f"Print({self.value})"
 
@@ -147,7 +159,7 @@ class Print(Expr):
         """ """
         return f"print({self.value.compile()})"
 
-    def typecheck(self) -> str:
+    def typecheck(self) -> None:
         """ """
         pass
 
