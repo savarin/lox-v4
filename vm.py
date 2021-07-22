@@ -99,9 +99,5 @@ def run(emulator: VM) -> int:
             constant = -constant
             emulator = push(emulator, constant)
 
-    assert emulator.top == 1
-    assert emulator.stack is not None
-    result = emulator.stack[0]
-
-    assert result is not None
+    _, result = pop(emulator)
     return result
