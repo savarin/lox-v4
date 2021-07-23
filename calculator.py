@@ -1,3 +1,7 @@
+from typing import Callable
+import operator
+
+
 class Expr:
     def pprint(self, *args) -> str:
         """ """
@@ -50,19 +54,23 @@ class Literal(Expr):
         pass
 
 
-class Plus(Expr):
-    def __init__(self, left: Expr, right: Expr) -> None:
+class Binary(Expr):
+    def __init__(
+        self, left: Expr, right: Expr, operator: Callable[[int, int], int], lexeme: str
+    ) -> None:
         """ """
         self.left = left
         self.right = right
+        self.operator = operator
+        self.lexeme = lexeme
 
     def __repr__(self) -> str:
         """ """
         return self.pprint(self.left, self.right)
 
-    def eval(self) -> Expr:
+    def eval(self) -> int:
         """ """
-        return self.left.eval() + self.right.eval()
+        return self.operator(self.left.eval(), self.right.eval())
 
     def optimize(self) -> Expr:
         """ """
@@ -70,13 +78,13 @@ class Plus(Expr):
         self.right = self.right.optimize()
 
         if isinstance(self.left, Literal) and isinstance(self.right, Literal):
-            return Literal(self.left.value + self.right.value)
+            return Literal(self.eval())
 
         return self
 
     def compile(self) -> str:
         """ """
-        return f"({self.left.compile()} + {self.right.compile()})"
+        return f"({self.left.compile()} {self.lexeme} {self.right.compile()})"
 
     def typecheck(self) -> None:
         """ """
@@ -87,41 +95,16 @@ class Plus(Expr):
         self.right.typecheck()
 
 
-class Times(Expr):
+class Plus(Binary):
     def __init__(self, left: Expr, right: Expr) -> None:
         """ """
-        self.left = left
-        self.right = right
+        super(Plus, self).__init__(left, right, operator.add, "+")
 
-    def __repr__(self) -> str:
+
+class Times(Binary):
+    def __init__(self, left: Expr, right: Expr) -> None:
         """ """
-        return self.pprint(self.left, self.right)
-
-    def eval(self) -> Expr:
-        """ """
-        return self.left.eval() * self.right.eval()
-
-    def optimize(self) -> Expr:
-        """ """
-        self.left = self.left.optimize()
-        self.right = self.right.optimize()
-
-        if isinstance(self.left, Literal) and isinstance(self.right, Literal):
-            return Literal(self.left.value * self.right.value)
-
-        return self
-
-    def compile(self) -> str:
-        """ """
-        return f"({self.left.compile()} * {self.right.compile()})"
-
-    def typecheck(self) -> None:
-        """ """
-        if isinstance(self.left, Print) or isinstance(self.right, Print):
-            raise TypeError("Cannot operate on None")
-
-        self.left.typecheck()
-        self.right.typecheck()
+        super(Times, self).__init__(left, right, operator.mul, "+")
 
 
 class GetNumber(Expr):
@@ -169,4 +152,4 @@ class Print(Expr):
 
 
 if __name__ == "__main__":
-    print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())).optimize().compile())
+    print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())))
