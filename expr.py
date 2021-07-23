@@ -1,15 +1,13 @@
-from typing import Optional
 import abc
 import dataclasses
 
 import token_class
-import token_type
 
 
 class Expr(abc.ABC):
-    def evaluate(self) -> Optional[int]:
-        """ """
-        pass
+    """ """
+
+    pass
 
 
 @dataclasses.dataclass

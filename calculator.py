@@ -153,3 +153,4 @@ class Print(Expr):
 
 if __name__ == "__main__":
     print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())))
+    # print(Literal(2))

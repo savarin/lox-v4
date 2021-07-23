@@ -1,11 +1,6 @@
-from typing import List, Optional, Union
-
 import compiler
-import expr
 import parser
 import scanner
-import token_class
-import token_type
 import vm
 
 
