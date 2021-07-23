@@ -148,9 +148,9 @@ class Print(Expr):
 
     def typecheck(self) -> None:
         """ """
-        pass
+        if isinstance(self.value, Print):
+            raise TypeError("Cannot operate on None")
 
 
 if __name__ == "__main__":
     print(Plus(Times(Literal(13), Literal(2)), Times(Literal(12), GetNumber())))
-    # print(Literal(2))
