@@ -1,9 +1,24 @@
 from typing import List, Optional, Tuple
 import dataclasses
+import functools
 
 import expr
 import token_class
 import token_type
+
+
+def expose(f):
+    """ """
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if args[0].debug_level >= 1:
+            args[0].debug_log.append(f.__name__)
+
+        value = f(*args, **kwargs)
+        return value
+
+    return wrapper
 
 
 class ParseError(Exception):
@@ -16,21 +31,28 @@ class Parser:
 
     tokens: List[token_class.Token]
     current: int = 0
+    debug_level: int = 0
+    debug_log: Optional[List[str]] = None
 
 
-def init_parser(tokens: List[token_class.Token]) -> Parser:
+def init_parser(tokens: List[token_class.Token], debug_level: int = 0) -> Parser:
     """ """
-    return Parser(tokens=tokens)
+    processor = Parser(tokens=tokens, debug_level=debug_level)
+    processor.debug_log = []
+
+    return processor
 
 
 def parse(processor: Parser) -> Optional[Tuple[Parser, expr.Expr]]:
     """ """
     try:
-        return term(processor)
+        result = term(processor)
+        return result
     except ParseError:
         return None
 
 
+@expose
 def term(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, factor_expression = factor(processor)
@@ -50,6 +72,7 @@ def term(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, factor_expression
 
 
+@expose
 def factor(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, unary_expression = unary(processor)
@@ -69,6 +92,7 @@ def factor(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, unary_expression
 
 
+@expose
 def unary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     while True:
@@ -84,6 +108,7 @@ def unary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return primary(processor)
 
 
+@expose
 def primary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, is_match = match(processor, [token_type.TokenType.NUMBER])
