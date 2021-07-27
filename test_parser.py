@@ -11,11 +11,13 @@ def source_to_expression(source: str) -> expr.Expr:
     processor = parser.init_parser(tokens=tokens)
     parse_tuple = parser.parse(processor)
 
-    assert parse_tuple is not None
+    if parse_tuple is None:
+        return None
+
     return parse_tuple[1]
 
 
-def test_parse() -> None:
+def test_valid_parse() -> None:
     """ """
     expression = source_to_expression(source="1 - (2 + 3)")
 
@@ -51,3 +53,10 @@ def test_parse() -> None:
         expression.right.expression.right.expression.operator.token_type
         == token_type.TokenType.PLUS
     )
+
+
+def test_invalid_parse() -> None:
+    """ """
+    expression = source_to_expression(source="1 +")
+
+    assert expression is None
