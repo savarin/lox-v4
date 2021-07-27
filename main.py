@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import expr
 import compiler
@@ -48,12 +48,14 @@ def scan(source: str) -> List[token_class.Token]:
     return tokens
 
 
-def parse(tokens: List[token_class.Token]) -> expr.Expr:
+def parse(tokens: List[token_class.Token]) -> Optional[expr.Expr]:
     """ """
-    processor = parser.init_parser(tokens=tokens)
+    processor = parser.init_parser(tokens=tokens, debug_level=1)
     parse_tuple = parser.parse(processor)
 
-    assert parse_tuple is not None
+    if parse_tuple is None:
+        return None
+
     _, expression = parse_tuple
     pprint(expression, counter=1)
 
@@ -85,7 +87,7 @@ def compile(expression: expr.Expr) -> List[compiler.ByteCode]:
     return bytecode
 
 
-def run(bytecode: List[compiler.ByteCode]) -> None:
+def run(expression: expr.Expr, bytecode: List[compiler.ByteCode]) -> None:
     """ """
     emulator = vm.init_vm(bytecode=bytecode)
     inspector = interpreter.init_interpreter(expression=expression)
@@ -110,10 +112,14 @@ if __name__ == "__main__":
         print("\n<parser>")
         expression = parse(tokens)
 
+        if expression is None:
+            print("")
+            continue
+
         print("\n<compiler>")
         bytecode = compile(expression)
 
         print("\n<output>")
-        run(bytecode)
+        run(expression, bytecode)
 
         print("")

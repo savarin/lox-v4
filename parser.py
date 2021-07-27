@@ -128,7 +128,7 @@ def primary(processor: Parser) -> Tuple[Parser, expr.Expr]:
         )
         return processor, expr.Grouping(parenthesis_expression)
 
-    raise error(processor, peek(processor), "Expect expression.")
+    raise error(processor, peek(processor), "Expect valid expression.")
 
 
 def match(
@@ -188,5 +188,5 @@ def error(
     processor: Parser, individual_token: token_class.Token, message: str
 ) -> ParseError:
     """ """
-    print(f"Error: {message}")
+    print(f"Error at TokenType.{individual_token.token_type.name}: {message}")
     return ParseError()
