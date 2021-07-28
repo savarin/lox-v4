@@ -38,10 +38,7 @@ class Parser:
 
 def init_parser(tokens: List[token_class.Token], debug_level: int = 0) -> Parser:
     """ """
-    processor = Parser(tokens=tokens, debug_level=debug_level)
-    processor.debug_log = []
-
-    return processor
+    return Parser(tokens=tokens, debug_level=debug_level, debug_log=[])
 
 
 def parse(processor: Parser) -> List[statem.Statem]:

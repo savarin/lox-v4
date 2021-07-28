@@ -99,10 +99,10 @@ def compile(statements: List[statem.Statem]) -> List[compiler.ByteCode]:
 
 def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> None:
     """ """
-    emulator = vm.init_vm(bytecode=bytecode)
+    # emulator = vm.init_vm(bytecode=bytecode)
     inspector = interpreter.init_interpreter(statements=statements)
 
-    print(f"    compiled    : {vm.run(emulator)}")
+    # print(f"    compiled    : {vm.run(emulator)}")
     print(f"    interpreted : {interpreter.interpret(inspector)}")
 
 
@@ -122,10 +122,11 @@ if __name__ == "__main__":
         print("\n<parser>")
         statements = parse(tokens)
 
-        print("\n<compiler>")
-        bytecode = compile(statements)
+        # print("\n<compiler>")
+        # bytecode = compile(statements)
 
         print("\n<output>")
-        run(statements, bytecode)
+        # run(statements, bytecode)
+        run(statements, None)
 
         print("")

@@ -1,6 +1,7 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 import dataclasses
 
+import environment
 import expr
 import statem
 import token_type
@@ -11,11 +12,13 @@ class Interpreter:
     """ """
 
     statements: List[statem.Statem]
+    enclosure: environment.Environment
 
 
 def init_interpreter(statements: List[statem.Statem]) -> Interpreter:
     """ """
-    return Interpreter(statements=statements)
+    enclosure = environment.init_environment()
+    return Interpreter(statements=statements, enclosure=enclosure)
 
 
 def interpret(inspector: Interpreter) -> Tuple[List[int], List[str]]:
@@ -25,20 +28,31 @@ def interpret(inspector: Interpreter) -> Tuple[List[int], List[str]]:
 
     for statement in inspector.statements:
         if isinstance(statement, statem.Expression):
-            expression_results.append(evaluate(statement.expression))
+            expression_result = evaluate(inspector, statement.expression) or 0
+            expression_results.append(expression_result)
 
         elif isinstance(statement, statem.Print):
-            print_result = str(evaluate(statement.expression))
-            print_results.append(print_result)
+            print_result = evaluate(inspector, statement.expression) or ""
+            print_results.append(str(print_result))
+
+        elif isinstance(statement, statem.Var):
+            value = None
+
+            if statement.initializer is not None:
+                value = evaluate(inspector, statement.initializer)
+
+            inspector.enclosure = environment.define(
+                inspector.enclosure, statement.name.lexeme, value
+            )
 
     return expression_results, print_results
 
 
-def evaluate(expression: expr.Expr) -> int:
+def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
     """ """
     if isinstance(expression, expr.Binary):
-        left = evaluate(expression.left)
-        right = evaluate(expression.right)
+        left = evaluate(inspector, expression.left)
+        right = evaluate(inspector, expression.right)
         individual_token = expression.operator.token_type
 
         if individual_token == token_type.TokenType.MINUS:
@@ -58,15 +72,20 @@ def evaluate(expression: expr.Expr) -> int:
             return left * right
 
     elif isinstance(expression, expr.Grouping):
-        return evaluate(expression.expression)
+        return evaluate(inspector, expression.expression)
+
+    elif isinstance(expression, expr.Literal):
+        return expression.value
 
     elif isinstance(expression, expr.Unary):
-        right = evaluate(expression.right)
+        right = evaluate(inspector, expression.right)
         individual_token = expression.operator.token_type
 
         if individual_token == token_type.TokenType.MINUS:
             assert right is not None
             return -right
 
-    assert isinstance(expression, expr.Literal)
-    return expression.value
+    elif isinstance(expression, expr.Variable):
+        return environment.get(inspector.enclosure, expression.name)
+
+    raise Exception
