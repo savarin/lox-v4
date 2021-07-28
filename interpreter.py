@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import List, Tuple
 import dataclasses
 
 import expr
+import statem
 import token_type
 
 
@@ -9,20 +10,31 @@ import token_type
 class Interpreter:
     """ """
 
-    expression: expr.Expr
+    statements: List[statem.Statem]
 
 
-def init_interpreter(expression: expr.Expr) -> Interpreter:
+def init_interpreter(statements: List[statem.Statem]) -> Interpreter:
     """ """
-    return Interpreter(expression=expression)
+    return Interpreter(statements=statements)
 
 
-def interpret(inspector: Interpreter) -> Optional[int]:
+def interpret(inspector: Interpreter) -> Tuple[List[int], List[str]]:
     """ """
-    return evaluate(inspector.expression)
+    expression_results: List[int] = []
+    print_results: List[str] = []
+
+    for statement in inspector.statements:
+        if isinstance(statement, statem.Expression):
+            expression_results.append(evaluate(statement.expression))
+
+        elif isinstance(statement, statem.Print):
+            print_result = str(evaluate(statement.expression))
+            print_results.append(print_result)
+
+    return expression_results, print_results
 
 
-def evaluate(expression: expr.Expr) -> Optional[int]:
+def evaluate(expression: expr.Expr) -> int:
     """ """
     if isinstance(expression, expr.Binary):
         left = evaluate(expression.left)
@@ -48,9 +60,6 @@ def evaluate(expression: expr.Expr) -> Optional[int]:
     elif isinstance(expression, expr.Grouping):
         return evaluate(expression.expression)
 
-    elif isinstance(expression, expr.Literal):
-        return expression.value
-
     elif isinstance(expression, expr.Unary):
         right = evaluate(expression.right)
         individual_token = expression.operator.token_type
@@ -59,4 +68,5 @@ def evaluate(expression: expr.Expr) -> Optional[int]:
             assert right is not None
             return -right
 
-    return None
+    assert isinstance(expression, expr.Literal)
+    return expression.value

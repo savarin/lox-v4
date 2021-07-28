@@ -3,6 +3,7 @@ import dataclasses
 import functools
 
 import expr
+import statem
 import token_class
 import token_type
 
@@ -43,13 +44,50 @@ def init_parser(tokens: List[token_class.Token], debug_level: int = 0) -> Parser
     return processor
 
 
-def parse(processor: Parser) -> Optional[Tuple[Parser, expr.Expr]]:
+def parse(processor: Parser) -> List[statem.Statem]:
     """ """
-    try:
-        result = term(processor)
-        return result
-    except ParseError:
-        return None
+    statements: List[statem.Statem] = []
+
+    while not is_at_end(processor):
+        processor, individual_statement = statement(processor)
+        statements.append(individual_statement)
+
+    return statements
+
+
+def expression(processor: Parser) -> Tuple[Parser, expr.Expr]:
+    """ """
+    return term(processor)
+
+
+def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, is_match = match(processor, [token_type.TokenType.PRINT])
+
+    if is_match:
+        return print_statement(processor)
+
+    return expression_statement(processor)
+
+
+def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, individual_expression = expression(processor)
+    processor, _ = consume(
+        processor, token_type.TokenType.SEMICOLON, "Expect ';' after print statement."
+    )
+
+    return processor, statem.Print(individual_expression)
+
+
+def expression_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, individual_expression = expression(processor)
+    processor, _ = consume(
+        processor, token_type.TokenType.SEMICOLON, "Expect ';' after expression."
+    )
+
+    return processor, statem.Expression(individual_expression)
 
 
 @expose

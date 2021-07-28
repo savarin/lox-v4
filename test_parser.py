@@ -1,25 +1,25 @@
+import pytest
+
 import expr
 import parser
 import scanner
+import statem
 import token_type
 
 
-def source_to_expression(source: str) -> expr.Expr:
+def source_to_statement(source: str) -> statem.Statem:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
     processor = parser.init_parser(tokens=tokens)
-    parse_tuple = parser.parse(processor)
-
-    if parse_tuple is None:
-        return None
-
-    return parse_tuple[1]
+    return parser.parse(processor)[0]
 
 
 def test_valid_parse() -> None:
     """ """
-    expression = source_to_expression(source="1 - (2 + 3)")
+    statement = source_to_statement(source="1 - (2 + 3);")
+    assert isinstance(statement, statem.Expression)
+    expression = statement.expression
 
     assert isinstance(expression, expr.Binary)
     assert isinstance(expression.left, expr.Literal)
@@ -31,7 +31,9 @@ def test_valid_parse() -> None:
     assert isinstance(expression.right.expression.right, expr.Literal)
     assert expression.right.expression.operator.token_type == token_type.TokenType.PLUS
 
-    expression = source_to_expression(source="5 * (-2 - (3 + 4))")
+    statement = source_to_statement(source="5 * (-2 - (3 + 4));")
+    assert isinstance(statement, statem.Expression)
+    expression = statement.expression
 
     assert isinstance(expression, expr.Binary)
     assert isinstance(expression.left, expr.Literal)
@@ -57,6 +59,5 @@ def test_valid_parse() -> None:
 
 def test_invalid_parse() -> None:
     """ """
-    expression = source_to_expression(source="1 +")
-
-    assert expression is None
+    with pytest.raises(parser.ParseError):
+        source_to_statement(source="1 +;")

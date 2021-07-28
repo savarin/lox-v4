@@ -9,10 +9,14 @@ class TokenType(enum.Enum):
     RIGHT_PAREN = "RIGHT_PAREN"
     MINUS = "MINUS"
     PLUS = "PLUS"
+    SEMICOLON = "SEMICOLON"
     SLASH = "SLASH"
     STAR = "STAR"
 
     # Literals.
     NUMBER = "NUMBER"
+
+    # Keywords
+    PRINT = "PRINT"
 
     EOF = "EOF"

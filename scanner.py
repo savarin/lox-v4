@@ -1,8 +1,13 @@
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 import dataclasses
 
 import token_class
 import token_type
+
+
+keywords: Dict[str, token_type.TokenType] = {
+    "print": token_type.TokenType.PRINT,
+}
 
 
 @dataclasses.dataclass
@@ -46,6 +51,8 @@ def scan_token(searcher: Scanner) -> Scanner:
         searcher = add_token(searcher, token_type.TokenType.PLUS)
     elif char == "*":
         searcher = add_token(searcher, token_type.TokenType.STAR)
+    elif char == ";":
+        searcher = add_token(searcher, token_type.TokenType.SEMICOLON)
     elif char == "/":
         searcher = add_token(searcher, token_type.TokenType.SLASH)
     elif char == " ":
@@ -53,8 +60,19 @@ def scan_token(searcher: Scanner) -> Scanner:
     else:
         if is_digit(char):
             searcher = number(searcher)
+        elif is_alpha(char):
+            searcher = identifier(searcher)
 
     return searcher
+
+
+def identifier(searcher: Scanner) -> Scanner:
+    """ """
+    while is_alpha_numeric(peek(searcher)):
+        searcher, _ = advance(searcher)
+
+    text = searcher.source[searcher.start : searcher.current]
+    return add_token(searcher, keywords[text])
 
 
 def number(searcher: Scanner) -> Scanner:
@@ -72,6 +90,16 @@ def peek(searcher: Scanner) -> str:
         return "\0"
 
     return searcher.source[searcher.current]
+
+
+def is_alpha_numeric(char: str) -> bool:
+    """ """
+    return is_alpha(char) or is_digit(char)
+
+
+def is_alpha(char: str) -> bool:
+    """ """
+    return (char >= "a" and char <= "z") or (char >= "A" and char <= "Z") or char == "_"
 
 
 def is_digit(char: str) -> bool:

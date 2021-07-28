@@ -1,19 +1,19 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import expr
 import compiler
 import interpreter
 import parser
 import scanner
+import statem
 import token_class
 import vm
 
 
-def pprint(expression: expr.Expr, counter: int = 0) -> None:
+def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
     """ """
-    result: List[Tuple[str, int]] = []
 
-    def traverse(expression: expr.Expr, counter: int = counter):
+    def traverse(expression: expr.Expr, counter: int):
         """ """
         if isinstance(expression, expr.Literal):
             result.append((f"Literal({expression.value})", counter))
@@ -31,7 +31,16 @@ def pprint(expression: expr.Expr, counter: int = 0) -> None:
             traverse(expression.left, counter + 1)
             traverse(expression.right, counter + 1)
 
-    traverse(expression)
+    result: List[Tuple[str, int]] = []
+
+    for statement in statements:
+        if isinstance(statement, statem.Expression):
+            result.append(("Expression", counter))
+            traverse(statement.expression, counter + 1)
+
+        elif isinstance(statement, statem.Print):
+            result.append(("Print", counter))
+            traverse(statement.expression, counter + 1)
 
     for item in result:
         print("    " * item[1] + item[0])
@@ -48,23 +57,18 @@ def scan(source: str) -> List[token_class.Token]:
     return tokens
 
 
-def parse(tokens: List[token_class.Token]) -> Optional[expr.Expr]:
+def parse(tokens: List[token_class.Token]) -> List[statem.Statem]:
     """ """
     processor = parser.init_parser(tokens=tokens, debug_level=1)
-    parse_tuple = parser.parse(processor)
+    statements = parser.parse(processor)
 
-    if parse_tuple is None:
-        return None
-
-    _, expression = parse_tuple
-    pprint(expression, counter=1)
-
-    return expression
+    pprint(statements, counter=1)
+    return statements
 
 
-def compile(expression: expr.Expr) -> List[compiler.ByteCode]:
+def compile(statements: List[statem.Statem]) -> List[compiler.ByteCode]:
     """ """
-    composer = compiler.init_compiler(expression=expression)
+    composer = compiler.init_compiler(statements=statements)
     bytecode = compiler.compile(composer)
 
     counter = 0
@@ -87,10 +91,10 @@ def compile(expression: expr.Expr) -> List[compiler.ByteCode]:
     return bytecode
 
 
-def run(expression: expr.Expr, bytecode: List[compiler.ByteCode]) -> None:
+def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> None:
     """ """
     emulator = vm.init_vm(bytecode=bytecode)
-    inspector = interpreter.init_interpreter(expression=expression)
+    inspector = interpreter.init_interpreter(statements=statements)
 
     print(f"    compiled    : {vm.run(emulator)}")
     print(f"    interpreted : {interpreter.interpret(inspector)}")
@@ -110,16 +114,12 @@ if __name__ == "__main__":
         tokens = scan(source)
 
         print("\n<parser>")
-        expression = parse(tokens)
-
-        if expression is None:
-            print("")
-            continue
+        statements = parse(tokens)
 
         print("\n<compiler>")
-        bytecode = compile(expression)
+        bytecode = compile(statements)
 
         print("\n<output>")
-        run(expression, bytecode)
+        run(statements, bytecode)
 
         print("")

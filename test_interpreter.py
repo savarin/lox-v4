@@ -1,23 +1,19 @@
-from typing import Optional
-
 import interpreter
 import parser
 import scanner
 
 
-def source_to_value(source: str) -> Optional[int]:
+def source_to_value(source: str) -> int:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
     processor = parser.init_parser(tokens=tokens)
-    parse_tuple = parser.parse(processor)
-
-    assert parse_tuple is not None
-    inspector = interpreter.init_interpreter(expression=parse_tuple[1])
-    return interpreter.interpret(inspector)
+    statements = parser.parse(processor)
+    inspector = interpreter.init_interpreter(statements=statements)
+    return interpreter.interpret(inspector)[0][0]
 
 
 def test_interpret() -> None:
     """ """
-    assert source_to_value(source="1 - (2 + 3)") == -4
-    assert source_to_value(source="5 * (2 - (3 + 4))") == -25
+    assert source_to_value(source="1 - (2 + 3);") == -4
+    assert source_to_value(source="5 * (2 - (3 + 4));") == -25

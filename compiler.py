@@ -3,6 +3,7 @@ import dataclasses
 import enum
 
 import expr
+import statem
 import token_type
 
 
@@ -19,6 +20,7 @@ class OpCode(enum.Enum):
     OP_MULTIPLY = "OP_MULTIPLY"
     OP_DIVIDE = "OP_DIVIDE"
     OP_NEGATE = "OP_NEGATE"
+    OP_PRINT = "OP_PRINT"
 
 
 operator_mapping: Dict[token_type.TokenType, OpCode] = {
@@ -33,17 +35,16 @@ operator_mapping: Dict[token_type.TokenType, OpCode] = {
 class Compiler:
     """ """
 
-    expression: expr.Expr
+    statements: List[statem.Statem]
 
 
-def init_compiler(expression: expr.Expr) -> Compiler:
+def init_compiler(statements: List[statem.Statem]) -> Compiler:
     """ """
-    return Compiler(expression=expression)
+    return Compiler(statements=statements)
 
 
 def compile(composer: Compiler) -> List[ByteCode]:
     """ """
-    bytecode: List[ByteCode] = []
 
     def traverse(expression: expr.Expr):
         """ """
@@ -65,5 +66,15 @@ def compile(composer: Compiler) -> List[ByteCode]:
             operator = operator_mapping[expression.operator.token_type]
             bytecode.append(operator)
 
-    traverse(composer.expression)
+    bytecode: List[ByteCode] = []
+
+    for statement in composer.statements:
+        if isinstance(statement, statem.Expression):
+            traverse(statement.expression)
+            bytecode.append(OpCode.OP_POP)
+
+        elif isinstance(statement, statem.Print):
+            traverse(statement.expression)
+            bytecode.append(OpCode.OP_PRINT)
+
     return bytecode
