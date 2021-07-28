@@ -19,10 +19,7 @@ class VM:
 
 def init_vm(bytecode: List[compiler.ByteCode]) -> VM:
     """ """
-    emulator = VM(bytecode=bytecode)
-    emulator.stack = [None] * STACK_MAX
-
-    return emulator
+    return VM(bytecode=bytecode, stack=[None] * STACK_MAX)
 
 
 def push(emulator: VM, value: int) -> VM:
@@ -36,8 +33,9 @@ def push(emulator: VM, value: int) -> VM:
 
 def pop(emulator: VM) -> Tuple[VM, int]:
     """ """
-    emulator.top -= 1
     assert emulator.stack is not None
+    emulator.top -= 1
+
     value = emulator.stack[emulator.top]
 
     assert value is not None

@@ -11,6 +11,14 @@ class Expr(abc.ABC):
 
 
 @dataclasses.dataclass
+class Assign(Expr):
+    """ """
+
+    name: token_class.Token
+    value: Expr
+
+
+@dataclasses.dataclass
 class Binary(Expr):
     """ """
 

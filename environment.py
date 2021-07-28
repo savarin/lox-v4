@@ -28,8 +28,24 @@ def define(enclosure: Environment, name: str, value: Optional[int]) -> Environme
 
 def get(enclosure: Environment, individual_token: token_class.Token) -> Optional[int]:
     """ """
+    assert enclosure.values is not None
     lexeme = individual_token.lexeme
 
+    if lexeme in enclosure.values:
+        return enclosure.values[lexeme]
+
+    raise Exception
+
+
+def assign(
+    enclosure: Environment, name: token_class.Token, value: Optional[int]
+) -> Environment:
+    """ """
     assert enclosure.values is not None
-    assert lexeme in enclosure.values
-    return enclosure.values[lexeme]
+    lexeme = name.lexeme
+
+    if lexeme in enclosure.values:
+        enclosure.values[lexeme] = value
+        return enclosure
+
+    raise Exception

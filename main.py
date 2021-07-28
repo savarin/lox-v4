@@ -15,21 +15,28 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
 
     def traverse(expression: expr.Expr, counter: int):
         """ """
-        if isinstance(expression, expr.Literal):
-            result.append((f"Literal({expression.value})", counter))
-
-        elif isinstance(expression, expr.Grouping):
-            result.append(("Grouping", counter))
-            traverse(expression.expression, counter + 1)
-
-        elif isinstance(expression, expr.Unary):
-            result.append((f"Unary {expression.operator.lexeme}", counter))
-            traverse(expression.right, counter + 1)
+        if isinstance(expression, expr.Assign):
+            result.append((f"Assign {expression.name.lexeme}", counter))
+            traverse(expression.value, counter + 1)
 
         elif isinstance(expression, expr.Binary):
             result.append((f"Binary {expression.operator.lexeme}", counter))
             traverse(expression.left, counter + 1)
             traverse(expression.right, counter + 1)
+
+        elif isinstance(expression, expr.Grouping):
+            result.append(("Grouping", counter))
+            traverse(expression.expression, counter + 1)
+
+        elif isinstance(expression, expr.Literal):
+            result.append((f"Literal({expression.value})", counter))
+
+        elif isinstance(expression, expr.Unary):
+            result.append((f"Unary {expression.operator.lexeme}", counter))
+            traverse(expression.right, counter + 1)
+
+        elif isinstance(expression, expr.Variable):
+            result.append((f"Variable {expression.name.lexeme}", counter))
 
     result: List[Tuple[str, int]] = []
 
@@ -43,7 +50,7 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
             traverse(statement.expression, counter + 1)
 
         elif isinstance(statement, statem.Var):
-            result.append(("Var", counter))
+            result.append((f"Var {statement.name.lexeme}", counter))
 
             if statement.initializer is not None:
                 traverse(statement.initializer, counter + 1)
@@ -108,7 +115,8 @@ def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> N
 
 if __name__ == "__main__":
     while True:
-        source = input("> ")
+        # source = input("> ")
+        source = "let a; a = 2 + 3; print a + 4;"
 
         if not source:
             break
@@ -130,3 +138,4 @@ if __name__ == "__main__":
         run(statements, None)
 
         print("")
+        break

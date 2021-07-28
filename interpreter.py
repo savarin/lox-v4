@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Union
 import dataclasses
 
 import environment
@@ -21,19 +21,18 @@ def init_interpreter(statements: List[statem.Statem]) -> Interpreter:
     return Interpreter(statements=statements, enclosure=enclosure)
 
 
-def interpret(inspector: Interpreter) -> Tuple[List[int], List[str]]:
+def interpret(inspector: Interpreter) -> List[Union[int, str, None]]:
     """ """
-    expression_results: List[int] = []
-    print_results: List[str] = []
+    result: List[Union[int, str, None]] = []
 
     for statement in inspector.statements:
         if isinstance(statement, statem.Expression):
             expression_result = evaluate(inspector, statement.expression) or 0
-            expression_results.append(expression_result)
+            result.append(expression_result)
 
         elif isinstance(statement, statem.Print):
             print_result = evaluate(inspector, statement.expression) or ""
-            print_results.append(str(print_result))
+            result.append(str(print_result))
 
         elif isinstance(statement, statem.Var):
             value = None
@@ -44,12 +43,20 @@ def interpret(inspector: Interpreter) -> Tuple[List[int], List[str]]:
             inspector.enclosure = environment.define(
                 inspector.enclosure, statement.name.lexeme, value
             )
+            result.append(None)
 
-    return expression_results, print_results
+    return result
 
 
 def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
     """ """
+    if isinstance(expression, expr.Assign):
+        value = evaluate(inspector, expression.value)
+        inspector.enclosure = environment.assign(
+            inspector.enclosure, expression.name, value
+        )
+        return value
+
     if isinstance(expression, expr.Binary):
         left = evaluate(inspector, expression.left)
         right = evaluate(inspector, expression.right)

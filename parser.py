@@ -64,8 +64,7 @@ def declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return statement(processor)
 
     # except ParseError:
-    #     pass
-    # synchronize(processor)
+    #     synchronize(processor)
 
 
 @expose
@@ -125,7 +124,26 @@ def expression_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
 @expose
 def expression(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
-    return term(processor)
+    return assignment(processor)
+
+
+@expose
+def assignment(processor: Parser) -> Tuple[Parser, expr.Expr]:
+    """ """
+    processor, term_expression = term(processor)
+    processor, is_match = match(processor, [token_type.TokenType.EQUAL])
+
+    if is_match:
+        equals = previous(processor)
+        processor, value = assignment(processor)
+
+        if isinstance(term_expression, expr.Variable):
+            name = term_expression.name
+            return processor, expr.Assign(name, value)
+
+        raise error(processor, equals, "Invalid assignment target.")
+
+    return processor, term_expression
 
 
 @expose
