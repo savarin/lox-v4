@@ -6,6 +6,7 @@ import token_type
 
 
 keywords: Dict[str, token_type.TokenType] = {
+    "let": token_type.TokenType.LET,
     "print": token_type.TokenType.PRINT,
 }
 
@@ -49,12 +50,14 @@ def scan_token(searcher: Scanner) -> Scanner:
         searcher = add_token(searcher, token_type.TokenType.MINUS)
     elif char == "+":
         searcher = add_token(searcher, token_type.TokenType.PLUS)
-    elif char == "*":
-        searcher = add_token(searcher, token_type.TokenType.STAR)
     elif char == ";":
         searcher = add_token(searcher, token_type.TokenType.SEMICOLON)
     elif char == "/":
         searcher = add_token(searcher, token_type.TokenType.SLASH)
+    elif char == "*":
+        searcher = add_token(searcher, token_type.TokenType.STAR)
+    elif char == "=":
+        searcher = add_token(searcher, token_type.TokenType.EQUAL)
     elif char == " ":
         pass
     else:
@@ -72,7 +75,12 @@ def identifier(searcher: Scanner) -> Scanner:
         searcher, _ = advance(searcher)
 
     text = searcher.source[searcher.start : searcher.current]
-    return add_token(searcher, keywords[text])
+    individual_token_type = keywords.get(text, None)
+
+    if individual_token_type is None:
+        individual_token_type = token_type.TokenType.IDENTIFIER
+
+    return add_token(searcher, individual_token_type)
 
 
 def number(searcher: Scanner) -> Scanner:

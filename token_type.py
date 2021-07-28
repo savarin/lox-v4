@@ -13,10 +13,15 @@ class TokenType(enum.Enum):
     SLASH = "SLASH"
     STAR = "STAR"
 
+    # One or two character tokens.
+    EQUAL = "EQUAL"
+
     # Literals.
+    IDENTIFIER = "IDENTIFIER"
     NUMBER = "NUMBER"
 
     # Keywords
+    LET = "LET"
     PRINT = "PRINT"
 
     EOF = "EOF"

@@ -39,3 +39,10 @@ class Unary(Expr):
 
     operator: token_class.Token
     right: Expr
+
+
+@dataclasses.dataclass
+class Variable(Expr):
+    """ """
+
+    name: token_class.Token

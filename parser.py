@@ -49,17 +49,29 @@ def parse(processor: Parser) -> List[statem.Statem]:
     statements: List[statem.Statem] = []
 
     while not is_at_end(processor):
-        processor, individual_statement = statement(processor)
+        processor, individual_statement = declaration(processor)
         statements.append(individual_statement)
 
     return statements
 
 
-def expression(processor: Parser) -> Tuple[Parser, expr.Expr]:
+@expose
+def declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
-    return term(processor)
+    # try:
+    processor, is_match = match(processor, [token_type.TokenType.LET])
+
+    if is_match:
+        return var_declaration(processor)
+
+    return statement(processor)
+
+    # except ParseError:
+    #     pass
+    # synchronize(processor)
 
 
+@expose
 def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, is_match = match(processor, [token_type.TokenType.PRINT])
@@ -70,6 +82,7 @@ def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return expression_statement(processor)
 
 
+@expose
 def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, individual_expression = expression(processor)
@@ -80,6 +93,28 @@ def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return processor, statem.Print(individual_expression)
 
 
+@expose
+def var_declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, name = consume(
+        processor, token_type.TokenType.IDENTIFIER, "Expect variable name."
+    )
+
+    initializer = None
+    processor, is_match = match(processor, [token_type.TokenType.EQUAL])
+
+    if is_match:
+        processor, initializer = expression(processor)
+
+    processor, _ = consume(
+        processor,
+        token_type.TokenType.SEMICOLON,
+        "Expect ';' after variable declaration.",
+    )
+    return processor, statem.Var(name, initializer)
+
+
+@expose
 def expression_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, individual_expression = expression(processor)
@@ -88,6 +123,12 @@ def expression_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     )
 
     return processor, statem.Expression(individual_expression)
+
+
+@expose
+def expression(processor: Parser) -> Tuple[Parser, expr.Expr]:
+    """ """
+    return term(processor)
 
 
 @expose
@@ -156,6 +197,12 @@ def primary(processor: Parser) -> Tuple[Parser, expr.Expr]:
 
         assert value is not None
         return processor, expr.Literal(value)
+
+    processor, is_match = match(processor, [token_type.TokenType.IDENTIFIER])
+
+    if is_match:
+        individual_token = previous(processor)
+        return processor, expr.Variable(individual_token)
 
     processor, is_match = match(processor, [token_type.TokenType.LEFT_PAREN])
 

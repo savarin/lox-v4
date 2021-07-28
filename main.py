@@ -42,6 +42,12 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
             result.append(("Print", counter))
             traverse(statement.expression, counter + 1)
 
+        elif isinstance(statement, statem.Var):
+            result.append(("Var", counter))
+
+            if statement.initializer is not None:
+                traverse(statement.initializer, counter + 1)
+
     for item in result:
         print("    " * item[1] + item[0])
 
