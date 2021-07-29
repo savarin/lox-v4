@@ -8,44 +8,62 @@ import token_class
 class Environment:
     """ """
 
+    enclosing: Optional["Environment"] = None
     values: Optional[Dict[str, Optional[int]]] = None
 
 
-def init_environment() -> Environment:
+def init_environment(enclosing: Optional["Environment"] = None) -> Environment:
     """ """
     values: Dict[str, Optional[int]] = {}
 
-    return Environment(values=values)
+    if enclosing is not None:
+        individual_enclosing = enclosing.enclosing
+
+        assert enclosing.values is not None
+        individual_values = enclosing.values.copy()
+
+        enclosing = Environment(
+            enclosing=individual_enclosing, values=individual_values
+        )
+
+    return Environment(enclosing=enclosing, values=values)
 
 
-def define(enclosure: Environment, name: str, value: Optional[int]) -> Environment:
+def define(ecosystem: Environment, name: str, value: Optional[int]) -> Environment:
     """ """
-    assert enclosure.values is not None
-    enclosure.values[name] = value
+    assert ecosystem.values is not None
+    ecosystem.values[name] = value
 
-    return enclosure
+    return ecosystem
 
 
-def get(enclosure: Environment, individual_token: token_class.Token) -> Optional[int]:
+def get(ecosystem: Environment, individual_token: token_class.Token) -> Optional[int]:
     """ """
-    assert enclosure.values is not None
+    assert ecosystem.values is not None
     lexeme = individual_token.lexeme
 
-    if lexeme in enclosure.values:
-        return enclosure.values[lexeme]
+    if lexeme in ecosystem.values:
+        return ecosystem.values[lexeme]
+
+    if ecosystem.enclosing is not None:
+        return get(ecosystem.enclosing, individual_token)
 
     raise Exception
 
 
 def assign(
-    enclosure: Environment, name: token_class.Token, value: Optional[int]
+    ecosystem: Environment, individual_token: token_class.Token, value: Optional[int]
 ) -> Environment:
     """ """
-    assert enclosure.values is not None
-    lexeme = name.lexeme
+    assert ecosystem.values is not None
+    lexeme = individual_token.lexeme
 
-    if lexeme in enclosure.values:
-        enclosure.values[lexeme] = value
-        return enclosure
+    if lexeme in ecosystem.values:
+        ecosystem.values[lexeme] = value
+        return ecosystem
+
+    if ecosystem.enclosing is not None:
+        ecosystem.enclosing = assign(ecosystem.enclosing, individual_token, value)
+        return ecosystem
 
     raise Exception

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 import abc
 import dataclasses
 
@@ -10,6 +10,13 @@ class Statem(abc.ABC):
     """ """
 
     pass
+
+
+@dataclasses.dataclass
+class Block(Statem):
+    """ """
+
+    statements: List[Statem]
 
 
 @dataclasses.dataclass

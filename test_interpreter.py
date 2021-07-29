@@ -5,7 +5,7 @@ import parser
 import scanner
 
 
-def source_to_value(source: str) -> List[Union[int, str, None]]:
+def source_to_result(source: str) -> List[Union[int, str, None]]:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
@@ -17,24 +17,69 @@ def source_to_value(source: str) -> List[Union[int, str, None]]:
 
 def test_expression() -> None:
     """ """
-    assert source_to_value(source="1 - (2 + 3);")[0] == -4
-    assert source_to_value(source="5 * (2 - (3 + 4));")[0] == -25
+    assert source_to_result(source="1 - (2 + 3);")[0] == -4
+    assert source_to_result(source="5 * (2 - (3 + 4));")[0] == -25
 
 
 def test_assignment() -> None:
     """ """
-    statements = source_to_value(source="let a; print a;")
+    result = source_to_result(source="let a; print a;")
 
-    assert statements[0] is None
-    assert statements[1] == ""
+    assert result[0] is None
+    assert result[1] == ""
 
-    statements = source_to_value(source="let a = 1; print a;")
+    result = source_to_result(source="let a = 1; print a;")
 
-    assert statements[0] is None
-    assert statements[1] == "1"
+    assert result[0] is None
+    assert result[1] == "1"
 
-    statements = source_to_value(source="let a = 1; a = 2; print a + 3;")
+    result = source_to_result(source="let a = 1; a = 2; print a + 3;")
 
-    assert statements[0] is None
-    assert statements[1] == 2
-    assert statements[2] == "5"
+    assert result[0] is None
+    assert result[1] is None
+    assert result[2] == "5"
+
+
+def test_scope() -> None:
+    """ """
+    result = source_to_result(
+        source="""\
+let a = 1;
+let b = 2;
+let c = 3";
+{
+    let a = 10;
+    let b = 20;
+    {
+        let a = 100;
+        print a;
+        print b;
+        print c;
+    }
+    print a;
+    print b;
+    print c;
+}
+print a;
+print b;
+print c;"""
+    )
+
+    assert result[0] is None
+    assert result[1] is None
+    assert result[2] is None
+    assert result[3] is None
+    assert result[4] is None
+    assert result[5] is None
+
+    assert result[6] == "100"
+    assert result[7] == "20"
+    assert result[8] == "3"
+
+    assert result[9] == "10"
+    assert result[10] == "20"
+    assert result[11] == "3"
+
+    assert result[12] == "1"
+    assert result[13] == "2"
+    assert result[14] == "3"

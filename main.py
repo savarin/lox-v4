@@ -13,6 +13,8 @@ import vm
 def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
     """ """
 
+    result: List[Tuple[str, int]] = []
+
     def traverse(expression: expr.Expr, counter: int):
         """ """
         if isinstance(expression, expr.Assign):
@@ -38,10 +40,15 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
         elif isinstance(expression, expr.Variable):
             result.append((f"Variable {expression.name.lexeme}", counter))
 
-    result: List[Tuple[str, int]] = []
+    def expose(statement: statem.Statem, counter: int):
+        """ """
+        if isinstance(statement, statem.Block):
+            result.append(("Block", counter))
 
-    for statement in statements:
-        if isinstance(statement, statem.Expression):
+            for block_statement in statement.statements:
+                expose(block_statement, counter + 1)
+
+        elif isinstance(statement, statem.Expression):
             result.append(("Expression", counter))
             traverse(statement.expression, counter + 1)
 
@@ -54,6 +61,9 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
 
             if statement.initializer is not None:
                 traverse(statement.initializer, counter + 1)
+
+    for statement in statements:
+        expose(statement, counter=1)
 
     for item in result:
         print("    " * item[1] + item[0])
@@ -115,8 +125,9 @@ def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> N
 
 if __name__ == "__main__":
     while True:
-        # source = input("> ")
-        source = "let a; a = 2 + 3; print a + 4;"
+        source = input("> ")
+        # source = "let a; a = 2 + 3; print a + 4;"
+        # source = "let a = 1; print a; { a = 2 ; print a; } print a;"
 
         if not source:
             break
@@ -138,4 +149,4 @@ if __name__ == "__main__":
         run(statements, None)
 
         print("")
-        break
+        # break

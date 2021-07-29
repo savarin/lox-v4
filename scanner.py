@@ -23,7 +23,8 @@ class Scanner:
 
 def init_scanner(source: str) -> Scanner:
     """ """
-    return Scanner(source=source, tokens=[])
+    tokens: List[token_class.Token] = []
+    return Scanner(source=source, tokens=tokens)
 
 
 def scan(searcher: Scanner) -> List[token_class.Token]:
@@ -46,6 +47,10 @@ def scan_token(searcher: Scanner) -> Scanner:
         searcher = add_token(searcher, token_type.TokenType.LEFT_PAREN)
     elif char == ")":
         searcher = add_token(searcher, token_type.TokenType.RIGHT_PAREN)
+    elif char == "{":
+        searcher = add_token(searcher, token_type.TokenType.LEFT_BRACE)
+    elif char == "}":
+        searcher = add_token(searcher, token_type.TokenType.RIGHT_BRACE)
     elif char == "-":
         searcher = add_token(searcher, token_type.TokenType.MINUS)
     elif char == "+":

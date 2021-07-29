@@ -65,7 +65,7 @@ def test_invalid_expression() -> None:
         source_to_statements(source="1 +;")
 
 
-def test_valid_assignment() -> None:
+def test_assignment() -> None:
     """ """
     statements = source_to_statements(source="let a; print a;")
 
@@ -132,3 +132,80 @@ def test_valid_assignment() -> None:
     assert print_statement.expression.operator.token_type == token_type.TokenType.PLUS
     assert isinstance(print_statement.expression.right, expr.Literal)
     assert print_statement.expression.right.value == 3
+
+
+def test_scope() -> None:
+    """ """
+    statements = source_to_statements(
+        source="""\
+let a = 1;
+{
+    let a = 10;
+    {
+        let a = 100;
+        print a;
+    }
+    print a;
+}
+print a;"""
+    )
+
+    var_declaration_first = statements[0]
+    assert isinstance(var_declaration_first, statem.Var)
+    assert var_declaration_first.name.token_type == token_type.TokenType.IDENTIFIER
+    assert var_declaration_first.name.lexeme == "a"
+    assert var_declaration_first.name.literal is None
+    assert isinstance(var_declaration_first.initializer, expr.Literal)
+    assert var_declaration_first.initializer.value == 1
+
+    block_first = statements[1]
+    assert isinstance(block_first, statem.Block)
+
+    var_declaration_second = block_first.statements[0]
+    assert isinstance(var_declaration_second, statem.Var)
+    assert var_declaration_second.name.token_type == token_type.TokenType.IDENTIFIER
+    assert var_declaration_second.name.lexeme == "a"
+    assert var_declaration_second.name.literal is None
+    assert isinstance(var_declaration_second.initializer, expr.Literal)
+    assert var_declaration_second.initializer.value == 10
+
+    block_second = block_first.statements[1]
+    assert isinstance(block_second, statem.Block)
+
+    var_declaration_third = block_second.statements[0]
+    assert isinstance(var_declaration_third, statem.Var)
+    assert var_declaration_third.name.token_type == token_type.TokenType.IDENTIFIER
+    assert var_declaration_third.name.lexeme == "a"
+    assert var_declaration_third.name.literal is None
+    assert isinstance(var_declaration_third.initializer, expr.Literal)
+    assert var_declaration_third.initializer.value == 100
+
+    print_statement_first = block_second.statements[1]
+    assert isinstance(print_statement_first, statem.Print)
+    assert isinstance(print_statement_first.expression, expr.Variable)
+    assert (
+        print_statement_first.expression.name.token_type
+        == token_type.TokenType.IDENTIFIER
+    )
+    assert print_statement_first.expression.name.lexeme == "a"
+    assert print_statement_first.expression.name.literal is None
+
+    print_statement_second = block_first.statements[2]
+    assert isinstance(print_statement_second, statem.Print)
+    assert isinstance(print_statement_second.expression, expr.Variable)
+    assert (
+        print_statement_second.expression.name.token_type
+        == token_type.TokenType.IDENTIFIER
+    )
+    assert print_statement_second.expression.name.lexeme == "a"
+    assert print_statement_second.expression.name.literal is None
+
+    print_statement_third = block_first.statements[2]
+    assert isinstance(print_statement_third, statem.Print)
+    assert isinstance(print_statement_third.expression, expr.Variable)
+    assert (
+        print_statement_third.expression.name.token_type
+        == token_type.TokenType.IDENTIFIER
+    )
+    assert print_statement_third.expression.name.lexeme == "a"
+    assert print_statement_third.expression.name.literal is None

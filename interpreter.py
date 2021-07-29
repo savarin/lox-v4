@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 import dataclasses
 
 import environment
@@ -12,13 +12,13 @@ class Interpreter:
     """ """
 
     statements: List[statem.Statem]
-    enclosure: environment.Environment
+    ecosystem: environment.Environment
 
 
 def init_interpreter(statements: List[statem.Statem]) -> Interpreter:
     """ """
-    enclosure = environment.init_environment()
-    return Interpreter(statements=statements, enclosure=enclosure)
+    ecosystem = environment.init_environment()
+    return Interpreter(statements=statements, ecosystem=ecosystem)
 
 
 def interpret(inspector: Interpreter) -> List[Union[int, str, None]]:
@@ -26,36 +26,71 @@ def interpret(inspector: Interpreter) -> List[Union[int, str, None]]:
     result: List[Union[int, str, None]] = []
 
     for statement in inspector.statements:
-        if isinstance(statement, statem.Expression):
-            expression_result = evaluate(inspector, statement.expression) or 0
-            result.append(expression_result)
-
-        elif isinstance(statement, statem.Print):
-            print_result = evaluate(inspector, statement.expression) or ""
-            result.append(str(print_result))
-
-        elif isinstance(statement, statem.Var):
-            value = None
-
-            if statement.initializer is not None:
-                value = evaluate(inspector, statement.initializer)
-
-            inspector.enclosure = environment.define(
-                inspector.enclosure, statement.name.lexeme, value
-            )
-            result.append(None)
+        inspector, individual_result = execute(inspector, statement)
+        result += individual_result
 
     return result
+
+
+def execute(
+    inspector: Interpreter, statement: statem.Statem
+) -> Tuple[Interpreter, List[Union[int, str, None]]]:
+    """ """
+    if isinstance(statement, statem.Block):
+        ecosystem = environment.init_environment(inspector.ecosystem)
+        inspector, result = execute_block(inspector, statement.statements, ecosystem)
+
+    elif isinstance(statement, statem.Expression):
+        result = [evaluate(inspector, statement.expression)]
+
+    elif isinstance(statement, statem.Print):
+        result = [str(evaluate(inspector, statement.expression) or "")]
+
+    elif isinstance(statement, statem.Var):
+        result, value = [None], None
+
+        if statement.initializer is not None:
+            value = evaluate(inspector, statement.initializer)
+
+        inspector.ecosystem = environment.define(
+            inspector.ecosystem, statement.name.lexeme, value
+        )
+
+    return inspector, result
+
+
+def execute_block(
+    inspector: Interpreter,
+    statements: List[statem.Statem],
+    ecosystem: environment.Environment,
+) -> Tuple[Interpreter, List[Union[int, str, None]]]:
+    """ """
+    previous = inspector.ecosystem
+
+    result: List[Union[int, str, None]] = []
+
+    try:
+        inspector.ecosystem = ecosystem
+
+        for statement in statements:
+            inspector, individual_result = execute(inspector, statement)
+            result += individual_result
+
+    finally:
+        inspector.ecosystem = previous
+
+    return inspector, result
 
 
 def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
     """ """
     if isinstance(expression, expr.Assign):
         value = evaluate(inspector, expression.value)
-        inspector.enclosure = environment.assign(
-            inspector.enclosure, expression.name, value
+        inspector.ecosystem = environment.assign(
+            inspector.ecosystem, expression.name, value
         )
-        return value
+
+        return None
 
     if isinstance(expression, expr.Binary):
         left = evaluate(inspector, expression.left)
@@ -93,6 +128,6 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
             return -right
 
     elif isinstance(expression, expr.Variable):
-        return environment.get(inspector.enclosure, expression.name)
+        return environment.get(inspector.ecosystem, expression.name)
 
     raise Exception

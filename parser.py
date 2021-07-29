@@ -38,7 +38,8 @@ class Parser:
 
 def init_parser(tokens: List[token_class.Token], debug_level: int = 0) -> Parser:
     """ """
-    return Parser(tokens=tokens, debug_level=debug_level, debug_log=[])
+    debug_log: List[str] = []
+    return Parser(tokens=tokens, debug_level=debug_level, debug_log=debug_log)
 
 
 def parse(processor: Parser) -> List[statem.Statem]:
@@ -68,28 +69,6 @@ def declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
 
 
 @expose
-def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
-    """ """
-    processor, is_match = match(processor, [token_type.TokenType.PRINT])
-
-    if is_match:
-        return print_statement(processor)
-
-    return expression_statement(processor)
-
-
-@expose
-def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
-    """ """
-    processor, individual_expression = expression(processor)
-    processor, _ = consume(
-        processor, token_type.TokenType.SEMICOLON, "Expect ';' after print statement."
-    )
-
-    return processor, statem.Print(individual_expression)
-
-
-@expose
 def var_declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, name = consume(
@@ -107,7 +86,54 @@ def var_declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
         token_type.TokenType.SEMICOLON,
         "Expect ';' after variable declaration.",
     )
+
     return processor, statem.Var(name, initializer)
+
+
+@expose
+def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, is_match = match(processor, [token_type.TokenType.PRINT])
+
+    if is_match:
+        return print_statement(processor)
+
+    processor, is_match = match(processor, [token_type.TokenType.LEFT_BRACE])
+
+    if is_match:
+        processor, statements = block(processor)
+        return processor, statem.Block(statements)
+
+    return expression_statement(processor)
+
+
+@expose
+def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, individual_expression = expression(processor)
+    processor, _ = consume(
+        processor, token_type.TokenType.SEMICOLON, "Expect ';' after print statement."
+    )
+
+    return processor, statem.Print(individual_expression)
+
+
+@expose
+def block(processor: Parser) -> Tuple[Parser, List[statem.Statem]]:
+    """ """
+    statements: List[statem.Statem] = []
+
+    while not check(processor, token_type.TokenType.RIGHT_BRACE) and not is_at_end(
+        processor
+    ):
+        processor, individual_statement = declaration(processor)
+        statements.append(individual_statement)
+
+    processor, _ = consume(
+        processor, token_type.TokenType.RIGHT_BRACE, "Expect '}' after block."
+    )
+
+    return processor, statements
 
 
 @expose
@@ -226,6 +252,7 @@ def primary(processor: Parser) -> Tuple[Parser, expr.Expr]:
         processor, _ = consume(
             processor, token_type.TokenType.RIGHT_PAREN, "Expect ')' after expression."
         )
+
         return processor, expr.Grouping(parenthesis_expression)
 
     raise error(processor, peek(processor), "Expect valid expression.")
