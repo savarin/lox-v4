@@ -44,7 +44,7 @@ def execute(
         result = [evaluate(inspector, statement.expression)]
 
     elif isinstance(statement, statem.Print):
-        result = [str(evaluate(inspector, statement.expression) or "")]
+        result = [stringify(evaluate(inspector, statement.expression))]
 
     elif isinstance(statement, statem.Var):
         result, value = [None], None
@@ -131,3 +131,11 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
         return environment.get(inspector.ecosystem, expression.name)
 
     raise Exception
+
+
+def stringify(operand: Optional[int]) -> str:
+    """ """
+    if operand is None:
+        return "nil"
+
+    return str(operand)

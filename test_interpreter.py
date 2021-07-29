@@ -26,7 +26,7 @@ def test_assignment() -> None:
     result = source_to_result(source="let a; print a;")
 
     assert result[0] is None
-    assert result[1] == ""
+    assert result[1] == "nil"
 
     result = source_to_result(source="let a = 1; print a;")
 
