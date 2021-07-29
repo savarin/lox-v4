@@ -152,7 +152,7 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, 
     elif isinstance(expression, expr.Variable):
         return environment.get(inspector.ecosystem, expression.name)
 
-    raise Exception
+    raise RuntimeError
 
 
 def is_equal(a: Optional[int], b: Optional[int]) -> bool:

@@ -48,7 +48,7 @@ def get(ecosystem: Environment, individual_token: token_class.Token) -> Optional
     if ecosystem.enclosing is not None:
         return get(ecosystem.enclosing, individual_token)
 
-    raise Exception
+    raise KeyError
 
 
 def assign(
@@ -66,4 +66,4 @@ def assign(
         ecosystem.enclosing = assign(ecosystem.enclosing, individual_token, value)
         return ecosystem
 
-    raise Exception
+    raise KeyError

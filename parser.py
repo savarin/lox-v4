@@ -367,7 +367,7 @@ def error(
 ) -> ParseError:
     """ """
     print(
-        f"Error at TokenType.{individual_token.token_type.name} in line {individual_token.line}: {message}"
+        f"\033[91mError at TokenType.{individual_token.token_type.name} in line {individual_token.line}: {message}\033[0m"
     )
     return ParseError()
 
