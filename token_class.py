@@ -11,6 +11,7 @@ class Token:
     token_type: token_type.TokenType
     lexeme: str
     literal: Optional[int]
+    line: int
 
     def __str__(self) -> str:
         """ """

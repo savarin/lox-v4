@@ -19,6 +19,7 @@ class Scanner:
     tokens: Optional[List[token_class.Token]] = None
     start: int = 0
     current: int = 0
+    line: int = 1
 
 
 def init_scanner(source: str) -> Scanner:
@@ -34,7 +35,9 @@ def scan(searcher: Scanner) -> List[token_class.Token]:
         scan_token(searcher)
 
     assert searcher.tokens is not None
-    searcher.tokens.append(token_class.Token(token_type.TokenType.EOF, "", None))
+    searcher.tokens.append(
+        token_class.Token(token_type.TokenType.EOF, "", None, searcher.line)
+    )
 
     return searcher.tokens
 
@@ -92,6 +95,9 @@ def scan_token(searcher: Scanner) -> Scanner:
             if match(searcher, "=")
             else token_type.TokenType.GREATER,
         )
+
+    elif char == "\n":
+        searcher.line += 1
 
     else:
         if is_digit(char):
@@ -182,6 +188,8 @@ def add_token(
     text = searcher.source[searcher.start : searcher.current]
 
     assert searcher.tokens is not None
-    searcher.tokens.append(token_class.Token(individual_type, text, literal))
+    searcher.tokens.append(
+        token_class.Token(individual_type, text, literal, searcher.line)
+    )
 
     return searcher
