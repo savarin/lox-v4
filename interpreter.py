@@ -38,16 +38,23 @@ def execute(
     """ """
     if isinstance(statement, statem.Block):
         ecosystem = environment.init_environment(inspector.ecosystem)
-        inspector, result = execute_block(inspector, statement.statements, ecosystem)
+        return execute_block(inspector, statement.statements, ecosystem)
+
+    elif isinstance(statement, statem.If):
+        if is_truthy(evaluate(inspector, statement.condition)):
+            return execute(inspector, statement.then_branch)
+
+        elif statement.else_branch is not None:
+            return execute(inspector, statement.else_branch)
 
     elif isinstance(statement, statem.Expression):
-        result = [evaluate(inspector, statement.expression)]
+        return inspector, [evaluate(inspector, statement.expression)]
 
     elif isinstance(statement, statem.Print):
-        result = [stringify(evaluate(inspector, statement.expression))]
+        return inspector, [stringify(evaluate(inspector, statement.expression))]
 
     elif isinstance(statement, statem.Var):
-        result, value = [None], None
+        value = None
 
         if statement.initializer is not None:
             value = evaluate(inspector, statement.initializer)
@@ -56,7 +63,9 @@ def execute(
             inspector.ecosystem, statement.name.lexeme, value
         )
 
-    return inspector, result
+        return inspector, [None]
+
+    raise Exception
 
 
 def execute_block(
@@ -65,9 +74,8 @@ def execute_block(
     ecosystem: environment.Environment,
 ) -> Tuple[Interpreter, List[Union[int, str, None]]]:
     """ """
-    previous = inspector.ecosystem
-
     result: List[Union[int, str, None]] = []
+    previous = inspector.ecosystem
 
     try:
         inspector.ecosystem = ecosystem
@@ -153,6 +161,17 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, 
         return environment.get(inspector.ecosystem, expression.name)
 
     raise RuntimeError
+
+
+def is_truthy(operand: Union[int, bool, None]) -> bool:
+    """ """
+    if operand is None:
+        return False
+
+    elif isinstance(operand, bool):
+        return operand
+
+    return True
 
 
 def is_equal(a: Optional[int], b: Optional[int]) -> bool:

@@ -30,6 +30,8 @@ class TokenType(enum.Enum):
     NUMBER = "NUMBER"
 
     # Keywords
+    ELSE = "ELSE"
+    IF = "IF"
     LET = "LET"
     PRINT = "PRINT"
 

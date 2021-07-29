@@ -6,6 +6,8 @@ import token_type
 
 
 keywords: Dict[str, token_type.TokenType] = {
+    "else": token_type.TokenType.ELSE,
+    "if": token_type.TokenType.IF,
     "let": token_type.TokenType.LET,
     "print": token_type.TokenType.PRINT,
 }
@@ -84,16 +86,16 @@ def scan_token(searcher: Scanner) -> Scanner:
     elif char == ">":
         searcher = add_token(
             searcher,
-            token_type.TokenType.LESS_EQUAL
+            token_type.TokenType.GREATER_EQUAL
             if match(searcher, "=")
-            else token_type.TokenType.LESS,
+            else token_type.TokenType.GREATER,
         )
     elif char == "<":
         searcher = add_token(
             searcher,
-            token_type.TokenType.GREATER_EQUAL
+            token_type.TokenType.LESS_EQUAL
             if match(searcher, "=")
-            else token_type.TokenType.GREATER,
+            else token_type.TokenType.LESS,
         )
 
     elif char == "\n":

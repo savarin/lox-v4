@@ -52,6 +52,13 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
             result.append(("Expression", counter))
             traverse(statement.expression, counter + 1)
 
+        if isinstance(statement, statem.If):
+            result.append(("If", counter))
+            expose(statement.then_branch, counter + 1)
+
+            if statement.else_branch is not None:
+                expose(statement.else_branch, counter + 1)
+
         elif isinstance(statement, statem.Print):
             result.append(("Print", counter))
             traverse(statement.expression, counter + 1)
@@ -128,6 +135,7 @@ if __name__ == "__main__":
         source = input("> ")
         # source = "let a; a = 2 + 3; print a + 4;"
         # source = "let a = 1; print a; { a = 2 ; print a; } print a;"
+        # source = "{ if (1 > 0) 2; else 3; }"
 
         if not source:
             break

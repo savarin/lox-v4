@@ -95,6 +95,11 @@ def var_declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
 @expose
 def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
+    processor, is_match = match(processor, [token_type.TokenType.IF])
+
+    if is_match:
+        return if_statement(processor)
+
     processor, is_match = match(processor, [token_type.TokenType.PRINT])
 
     if is_match:
@@ -107,6 +112,31 @@ def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
         return processor, statem.Block(statements)
 
     return expression_statement(processor)
+
+
+@expose
+def if_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, _ = consume(
+        processor, token_type.TokenType.LEFT_PAREN, "Expect '(' after 'if'."
+    )
+
+    processor, condition = expression(processor)
+
+    processor, _ = consume(
+        processor, token_type.TokenType.RIGHT_PAREN, "Expect ')' after if condition."
+    )
+
+    processor, then_branch = statement(processor)
+
+    else_branch = None
+
+    processor, is_match = match(processor, [token_type.TokenType.ELSE])
+
+    if is_match:
+        processor, else_branch = statement(processor)
+
+    return processor, statem.If(condition, then_branch, else_branch)
 
 
 @expose
