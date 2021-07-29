@@ -48,24 +48,26 @@ def parse(processor: Parser) -> List[statem.Statem]:
 
     while not is_at_end(processor):
         processor, individual_statement = declaration(processor)
-        statements.append(individual_statement)
+
+        if individual_statement is not None:
+            statements.append(individual_statement)
 
     return statements
 
 
 @expose
-def declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
+def declaration(processor: Parser) -> Tuple[Parser, Optional[statem.Statem]]:
     """ """
-    # try:
-    processor, is_match = match(processor, [token_type.TokenType.LET])
+    try:
+        processor, is_match = match(processor, [token_type.TokenType.LET])
 
-    if is_match:
-        return var_declaration(processor)
+        if is_match:
+            return var_declaration(processor)
 
-    return statement(processor)
+        return statement(processor)
 
-    # except ParseError:
-    #     synchronize(processor)
+    except ParseError:
+        return synchronize(processor), None
 
 
 @expose
@@ -127,7 +129,9 @@ def block(processor: Parser) -> Tuple[Parser, List[statem.Statem]]:
         processor
     ):
         processor, individual_statement = declaration(processor)
-        statements.append(individual_statement)
+
+        if individual_statement is not None:
+            statements.append(individual_statement)
 
     processor, _ = consume(
         processor, token_type.TokenType.RIGHT_BRACE, "Expect '}' after block."
@@ -364,3 +368,21 @@ def error(
     """ """
     print(f"Error at TokenType.{individual_token.token_type.name}: {message}")
     return ParseError()
+
+
+def synchronize(processor: Parser) -> Parser:
+    """ """
+    processor, _ = advance(processor)
+
+    while not is_at_end(processor):
+        if previous(processor).token_type == token_type.TokenType.SEMICOLON:
+            return processor
+
+        individual_type = peek(processor).token_type
+
+        if individual_type in [token_type.TokenType.LET, token_type.TokenType.PRINT]:
+            return processor
+
+        processor, _ = advance(processor)
+
+    return processor

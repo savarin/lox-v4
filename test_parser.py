@@ -1,7 +1,5 @@
 from typing import List
 
-import pytest
-
 import expr
 import parser
 import scanner
@@ -61,8 +59,7 @@ def test_valid_expression() -> None:
 
 def test_invalid_expression() -> None:
     """ """
-    with pytest.raises(parser.ParseError):
-        source_to_statements(source="1 +;")
+    assert source_to_statements(source="1 +;") == []
 
 
 def test_assignment() -> None:

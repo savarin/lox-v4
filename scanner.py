@@ -108,12 +108,12 @@ def identifier(searcher: Scanner) -> Scanner:
         searcher, _ = advance(searcher)
 
     text = searcher.source[searcher.start : searcher.current]
-    individual_token_type = keywords.get(text, None)
+    individual_type = keywords.get(text, None)
 
-    if individual_token_type is None:
-        individual_token_type = token_type.TokenType.IDENTIFIER
+    if individual_type is None:
+        individual_type = token_type.TokenType.IDENTIFIER
 
-    return add_token(searcher, individual_token_type)
+    return add_token(searcher, individual_type)
 
 
 def number(searcher: Scanner) -> Scanner:
