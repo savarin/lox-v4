@@ -61,10 +61,38 @@ def scan_token(searcher: Scanner) -> Scanner:
         searcher = add_token(searcher, token_type.TokenType.SLASH)
     elif char == "*":
         searcher = add_token(searcher, token_type.TokenType.STAR)
-    elif char == "=":
-        searcher = add_token(searcher, token_type.TokenType.EQUAL)
     elif char == " ":
         pass
+
+    elif char == "!":
+        searcher = add_token(
+            searcher,
+            token_type.TokenType.BANG_EQUAL
+            if match(searcher, "=")
+            else token_type.TokenType.BANG,
+        )
+    elif char == "=":
+        searcher = add_token(
+            searcher,
+            token_type.TokenType.EQUAL_EQUAL
+            if match(searcher, "=")
+            else token_type.TokenType.EQUAL,
+        )
+    elif char == ">":
+        searcher = add_token(
+            searcher,
+            token_type.TokenType.LESS_EQUAL
+            if match(searcher, "=")
+            else token_type.TokenType.LESS,
+        )
+    elif char == "<":
+        searcher = add_token(
+            searcher,
+            token_type.TokenType.GREATER_EQUAL
+            if match(searcher, "=")
+            else token_type.TokenType.GREATER,
+        )
+
     else:
         if is_digit(char):
             searcher = number(searcher)
@@ -95,6 +123,18 @@ def number(searcher: Scanner) -> Scanner:
 
     number = int(searcher.source[searcher.start : searcher.current])
     return add_token(searcher, token_type.TokenType.NUMBER, number)
+
+
+def match(searcher: Scanner, expected: str) -> bool:
+    """ """
+    if is_at_end(searcher):
+        return False
+
+    if searcher.source[searcher.current] != expected:
+        return False
+
+    searcher.current += 1
+    return True
 
 
 def peek(searcher: Scanner) -> str:

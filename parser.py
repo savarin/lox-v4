@@ -156,7 +156,7 @@ def expression(processor: Parser) -> Tuple[Parser, expr.Expr]:
 @expose
 def assignment(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
-    processor, term_expression = term(processor)
+    processor, term_expression = equality(processor)
     processor, is_match = match(processor, [token_type.TokenType.EQUAL])
 
     if is_match:
@@ -168,6 +168,53 @@ def assignment(processor: Parser) -> Tuple[Parser, expr.Expr]:
             return processor, expr.Assign(name, value)
 
         raise error(processor, equals, "Invalid assignment target.")
+
+    return processor, term_expression
+
+
+@expose
+def equality(processor: Parser) -> Tuple[Parser, expr.Expr]:
+    """ """
+    processor, comparison_expression = comparison(processor)
+
+    while True:
+        processor, is_match = match(
+            processor,
+            [token_type.TokenType.BANG_EQUAL, token_type.TokenType.EQUAL_EQUAL],
+        )
+
+        if not is_match:
+            break
+
+        operator = previous(processor)
+        processor, right = comparison(processor)
+        comparison_expression = expr.Binary(comparison_expression, operator, right)
+
+    return processor, comparison_expression
+
+
+@expose
+def comparison(processor: Parser) -> Tuple[Parser, expr.Expr]:
+    """ """
+    processor, term_expression = term(processor)
+
+    while True:
+        processor, is_match = match(
+            processor,
+            [
+                token_type.TokenType.GREATER,
+                token_type.TokenType.GREATER_EQUAL,
+                token_type.TokenType.LESS,
+                token_type.TokenType.LESS_EQUAL,
+            ],
+        )
+
+        if not is_match:
+            break
+
+        operator = previous(processor)
+        processor, right = term(processor)
+        term_expression = expr.Binary(term_expression, operator, right)
 
     return processor, term_expression
 

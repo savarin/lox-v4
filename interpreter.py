@@ -82,7 +82,7 @@ def execute_block(
     return inspector, result
 
 
-def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
+def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, None]:
     """ """
     if isinstance(expression, expr.Assign):
         value = evaluate(inspector, expression.value)
@@ -92,12 +92,34 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
 
         return None
 
-    if isinstance(expression, expr.Binary):
+    elif isinstance(expression, expr.Binary):
         left = evaluate(inspector, expression.left)
         right = evaluate(inspector, expression.right)
         individual_token = expression.operator.token_type
 
-        if individual_token == token_type.TokenType.MINUS:
+        if individual_token == token_type.TokenType.GREATER:
+            assert left is not None and right is not None
+            return left > right
+
+        elif individual_token == token_type.TokenType.GREATER_EQUAL:
+            assert left is not None and right is not None
+            return left >= right
+
+        elif individual_token == token_type.TokenType.LESS:
+            assert left is not None and right is not None
+            return left < right
+
+        elif individual_token == token_type.TokenType.LESS_EQUAL:
+            assert left is not None and right is not None
+            return left <= right
+
+        elif individual_token == token_type.TokenType.BANG_EQUAL:
+            return not is_equal(left, right)
+
+        elif individual_token == token_type.TokenType.EQUAL_EQUAL:
+            return is_equal(left, right)
+
+        elif individual_token == token_type.TokenType.MINUS:
             assert left is not None and right is not None
             return left - right
 
@@ -105,7 +127,7 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
             assert left is not None and right is not None
             return left + right
 
-        if individual_token == token_type.TokenType.SLASH:
+        elif individual_token == token_type.TokenType.SLASH:
             assert left is not None and right is not None
             return left // right
 
@@ -131,6 +153,17 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Optional[int]:
         return environment.get(inspector.ecosystem, expression.name)
 
     raise Exception
+
+
+def is_equal(a: Optional[int], b: Optional[int]) -> bool:
+    """ """
+    if a is None and b is None:
+        return True
+
+    elif a is None or b is None:
+        return False
+
+    return a == b
 
 
 def stringify(operand: Optional[int]) -> str:

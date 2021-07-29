@@ -16,7 +16,14 @@ class TokenType(enum.Enum):
     STAR = "STAR"
 
     # One or two character tokens.
+    BANG = "BANG"
+    BANG_EQUAL = "BANG_EQUAL"
     EQUAL = "EQUAL"
+    EQUAL_EQUAL = "EQUAL_EQUAL"
+    GREATER = "GREATER"
+    GREATER_EQUAL = "GREATER_EQUAL"
+    LESS = "LESS"
+    LESS_EQUAL = "LESS_EQUAL"
 
     # Literals.
     IDENTIFIER = "IDENTIFIER"
