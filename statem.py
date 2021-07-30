@@ -27,6 +27,15 @@ class Expression(Statem):
 
 
 @dataclasses.dataclass
+class Function(Statem):
+    """ """
+
+    name: token_class.Token
+    parameters: List[token_class.Token]
+    body: List[Statem]
+
+
+@dataclasses.dataclass
 class If(Statem):
     """ """
 

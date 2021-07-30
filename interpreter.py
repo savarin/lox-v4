@@ -7,6 +7,9 @@ import statem
 import token_type
 
 
+Result = Union[int, str, None]
+
+
 @dataclasses.dataclass
 class Interpreter:
     """ """
@@ -21,9 +24,9 @@ def init_interpreter(statements: List[statem.Statem]) -> Interpreter:
     return Interpreter(statements=statements, ecosystem=ecosystem)
 
 
-def interpret(inspector: Interpreter) -> List[Union[int, str, None]]:
+def interpret(inspector: Interpreter) -> List[Result]:
     """ """
-    result: List[Union[int, str, None]] = []
+    result: List[Result] = []
 
     for statement in inspector.statements:
         inspector, individual_result = execute(inspector, statement)
@@ -34,24 +37,44 @@ def interpret(inspector: Interpreter) -> List[Union[int, str, None]]:
 
 def execute(
     inspector: Interpreter, statement: statem.Statem
-) -> Tuple[Interpreter, List[Union[int, str, None]]]:
+) -> Tuple[Interpreter, List[Result]]:
     """ """
     if isinstance(statement, statem.Block):
         ecosystem = environment.init_environment(inspector.ecosystem)
         return execute_block(inspector, statement.statements, ecosystem)
 
+    elif isinstance(statement, statem.Function):
+        inspector.ecosystem = environment.define(
+            inspector.ecosystem, statement.name.lexeme, statement
+        )
+        return inspector, [None]
+
+    elif isinstance(statement, statem.Expression):
+        result = evaluate(inspector, statement.expression)
+
+        if isinstance(result, list):
+            return inspector, result
+
+        assert not isinstance(result, statem.Function)
+        return inspector, [result]
+
     elif isinstance(statement, statem.If):
-        if is_truthy(evaluate(inspector, statement.condition)):
+        result = evaluate(inspector, statement.condition)
+        assert isinstance(result, bool)
+
+        if is_truthy(result):
             return execute(inspector, statement.then_branch)
 
         elif statement.else_branch is not None:
             return execute(inspector, statement.else_branch)
 
-    elif isinstance(statement, statem.Expression):
-        return inspector, [evaluate(inspector, statement.expression)]
+        return inspector, [None]
 
     elif isinstance(statement, statem.Print):
-        return inspector, [stringify(evaluate(inspector, statement.expression))]
+        result = evaluate(inspector, statement.expression)
+        assert result is None or isinstance(result, int)
+
+        return inspector, [stringify(result)]
 
     elif isinstance(statement, statem.Var):
         value = None
@@ -59,6 +82,11 @@ def execute(
         if statement.initializer is not None:
             value = evaluate(inspector, statement.initializer)
 
+        assert (
+            isinstance(value, int)
+            or isinstance(value, statem.Function)
+            or value is None
+        )
         inspector.ecosystem = environment.define(
             inspector.ecosystem, statement.name.lexeme, value
         )
@@ -72,16 +100,21 @@ def execute_block(
     inspector: Interpreter,
     statements: List[statem.Statem],
     ecosystem: environment.Environment,
-) -> Tuple[Interpreter, List[Union[int, str, None]]]:
+) -> Tuple[Interpreter, List[Result]]:
     """ """
-    result: List[Union[int, str, None]] = []
+    result: List[Result] = []
     previous = inspector.ecosystem
 
     try:
         inspector.ecosystem = ecosystem
 
         for statement in statements:
-            inspector, individual_result = execute(inspector, statement)
+            result_tuple = execute(inspector, statement)
+
+            if result_tuple is None:
+                continue
+
+            inspector, individual_result = result_tuple
             result += individual_result
 
     finally:
@@ -90,10 +123,14 @@ def execute_block(
     return inspector, result
 
 
-def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, None]:
+def evaluate(
+    inspector: Interpreter, expression: expr.Expr
+) -> Union[Result, List[Result], statem.Function]:
     """ """
     if isinstance(expression, expr.Assign):
         value = evaluate(inspector, expression.value)
+
+        assert isinstance(value, int) or isinstance(value, statem.Function)
         inspector.ecosystem = environment.assign(
             inspector.ecosystem, expression.name, value
         )
@@ -105,43 +142,53 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, 
         right = evaluate(inspector, expression.right)
         individual_token = expression.operator.token_type
 
-        if individual_token == token_type.TokenType.GREATER:
-            assert left is not None and right is not None
-            return left > right
+        assert left is None or isinstance(left, int)
+        assert right is None or isinstance(right, int)
 
-        elif individual_token == token_type.TokenType.GREATER_EQUAL:
-            assert left is not None and right is not None
-            return left >= right
-
-        elif individual_token == token_type.TokenType.LESS:
-            assert left is not None and right is not None
-            return left < right
-
-        elif individual_token == token_type.TokenType.LESS_EQUAL:
-            assert left is not None and right is not None
-            return left <= right
-
-        elif individual_token == token_type.TokenType.BANG_EQUAL:
+        if individual_token == token_type.TokenType.BANG_EQUAL:
             return not is_equal(left, right)
 
         elif individual_token == token_type.TokenType.EQUAL_EQUAL:
             return is_equal(left, right)
 
+        assert isinstance(left, int) and isinstance(right, int)
+
+        if individual_token == token_type.TokenType.GREATER:
+            return left > right
+
+        elif individual_token == token_type.TokenType.GREATER_EQUAL:
+            return left >= right
+
+        elif individual_token == token_type.TokenType.LESS:
+            return left < right
+
+        elif individual_token == token_type.TokenType.LESS_EQUAL:
+            return left <= right
+
         elif individual_token == token_type.TokenType.MINUS:
-            assert left is not None and right is not None
             return left - right
 
         elif individual_token == token_type.TokenType.PLUS:
-            assert left is not None and right is not None
             return left + right
 
         elif individual_token == token_type.TokenType.SLASH:
-            assert left is not None and right is not None
             return left // right
 
         elif individual_token == token_type.TokenType.STAR:
-            assert left is not None and right is not None
             return left * right
+
+    elif isinstance(expression, expr.Call):
+        arguments: List[int] = []
+        callee = evaluate(inspector, expression.callee)
+        assert isinstance(callee, statem.Function)
+
+        for argument in expression.arguments:
+            individual_argument = evaluate(inspector, argument)
+            assert isinstance(individual_argument, int)
+
+            arguments.append(individual_argument)
+
+        return call(inspector, callee, arguments)
 
     elif isinstance(expression, expr.Grouping):
         return evaluate(inspector, expression.expression)
@@ -154,7 +201,7 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, 
         individual_token = expression.operator.token_type
 
         if individual_token == token_type.TokenType.MINUS:
-            assert right is not None
+            assert isinstance(right, int)
             return -right
 
     elif isinstance(expression, expr.Variable):
@@ -163,7 +210,20 @@ def evaluate(inspector: Interpreter, expression: expr.Expr) -> Union[int, bool, 
     raise RuntimeError
 
 
-def is_truthy(operand: Union[int, bool, None]) -> bool:
+def call(
+    inspector: Interpreter, function: statem.Function, arguments: List[int]
+) -> List[Result]:
+    """ """
+    ecosystem = environment.init_environment(inspector.ecosystem)
+
+    for i, parameter in enumerate(function.parameters):
+        ecosystem = environment.define(ecosystem, parameter.lexeme, arguments[i])
+
+    _, result = execute_block(inspector, function.body, ecosystem)
+    return result
+
+
+def is_truthy(operand: Result) -> bool:
     """ """
     if operand is None:
         return False

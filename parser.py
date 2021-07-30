@@ -59,6 +59,11 @@ def parse(processor: Parser) -> List[statem.Statem]:
 def declaration(processor: Parser) -> Tuple[Parser, Optional[statem.Statem]]:
     """ """
     try:
+        processor, is_match = match(processor, [token_type.TokenType.FUN])
+
+        if is_match:
+            return function(processor, "function")
+
         processor, is_match = match(processor, [token_type.TokenType.LET])
 
         if is_match:
@@ -68,6 +73,43 @@ def declaration(processor: Parser) -> Tuple[Parser, Optional[statem.Statem]]:
 
     except ParseError:
         return synchronize(processor), None
+
+
+@expose
+def function(processor: Parser, kind: str) -> Tuple[Parser, statem.Statem]:
+    """ """
+    processor, name = consume(
+        processor, token_type.TokenType.IDENTIFIER, f"Expect {kind} name."
+    )
+
+    processor, _ = consume(
+        processor, token_type.TokenType.LEFT_PAREN, f"Expect '(' after {kind} name."
+    )
+
+    parameters: List[token_class.Token] = []
+
+    if not check(processor, token_type.TokenType.RIGHT_PAREN):
+        while True:
+            processor, parameter = consume(
+                processor, token_type.TokenType.IDENTIFIER, "Expect parameter name."
+            )
+            parameters.append(parameter)
+
+            processor, is_match = match(processor, [token_type.TokenType.COMMA])
+
+            if not is_match:
+                break
+
+    processor, _ = consume(
+        processor, token_type.TokenType.RIGHT_PAREN, "Expect ')' after parameters."
+    )
+
+    processor, _ = consume(
+        processor, token_type.TokenType.LEFT_BRACE, "Expect '{' before body."
+    )
+
+    processor, body = block(processor)
+    return processor, statem.Function(name, parameters, body)
 
 
 @expose
@@ -306,7 +348,45 @@ def unary(processor: Parser) -> Tuple[Parser, expr.Expr]:
         processor, right = unary(processor)
         return processor, expr.Unary(operator, right)
 
-    return primary(processor)
+    return call(processor)
+
+
+@expose
+def call(processor: Parser) -> Tuple[Parser, expr.Expr]:
+    """ """
+    processor, primary_expression = primary(processor)
+
+    while True:
+        processor, is_match = match(processor, [token_type.TokenType.LEFT_PAREN])
+
+        if is_match:
+            processor, primary_expression = finish_call(processor, primary_expression)
+        else:
+            break
+
+    return processor, primary_expression
+
+
+@expose
+def finish_call(processor: Parser, callee: expr.Expr) -> Tuple[Parser, expr.Expr]:
+    """ """
+    arguments: List[expr.Expr] = []
+
+    if not check(processor, token_type.TokenType.RIGHT_PAREN):
+        while True:
+            processor, individual_expression = expression(processor)
+            arguments.append(individual_expression)
+
+            processor, is_match = match(processor, [token_type.TokenType.COMMA])
+
+            if not is_match:
+                break
+
+    processor, paren = consume(
+        processor, token_type.TokenType.RIGHT_PAREN, "Expect ')' after arguments."
+    )
+
+    return processor, expr.Call(callee, paren, arguments)
 
 
 @expose
@@ -361,14 +441,6 @@ def consume(
     raise error(processor, peek(processor), message)
 
 
-def check(processor: Parser, individual_type: token_type.TokenType) -> bool:
-    """ """
-    if is_at_end(processor):
-        return False
-
-    return peek(processor).token_type == individual_type
-
-
 def advance(processor: Parser) -> Tuple[Parser, token_class.Token]:
     """ """
     if not is_at_end(processor):
@@ -377,9 +449,12 @@ def advance(processor: Parser) -> Tuple[Parser, token_class.Token]:
     return processor, previous(processor)
 
 
-def is_at_end(processor: Parser) -> bool:
+def check(processor: Parser, individual_type: token_type.TokenType) -> bool:
     """ """
-    return peek(processor).token_type == token_type.TokenType.EOF
+    if is_at_end(processor):
+        return False
+
+    return peek(processor).token_type == individual_type
 
 
 def peek(processor: Parser) -> token_class.Token:
@@ -390,6 +465,11 @@ def peek(processor: Parser) -> token_class.Token:
 def previous(processor: Parser) -> token_class.Token:
     """ """
     return processor.tokens[processor.current - 1]
+
+
+def is_at_end(processor: Parser) -> bool:
+    """ """
+    return peek(processor).token_type == token_type.TokenType.EOF
 
 
 def error(
@@ -412,7 +492,11 @@ def synchronize(processor: Parser) -> Parser:
 
         individual_type = peek(processor).token_type
 
-        if individual_type in [token_type.TokenType.LET, token_type.TokenType.PRINT]:
+        if individual_type in [
+            token_type.TokenType.IF,
+            token_type.TokenType.LET,
+            token_type.TokenType.PRINT,
+        ]:
             return processor
 
         processor, _ = advance(processor)

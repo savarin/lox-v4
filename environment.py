@@ -1,7 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 import dataclasses
 
+import statem
 import token_class
+
+
+Value = Union[int, statem.Function, None]
 
 
 @dataclasses.dataclass
@@ -9,12 +13,12 @@ class Environment:
     """ """
 
     enclosing: Optional["Environment"] = None
-    values: Optional[Dict[str, Optional[int]]] = None
+    values: Optional[Dict[str, Value]] = None
 
 
 def init_environment(enclosing: Optional["Environment"] = None) -> Environment:
     """ """
-    values: Dict[str, Optional[int]] = {}
+    values: Dict[str, Value] = {}
 
     if enclosing is not None:
         individual_enclosing = enclosing.enclosing
@@ -29,7 +33,7 @@ def init_environment(enclosing: Optional["Environment"] = None) -> Environment:
     return Environment(enclosing=enclosing, values=values)
 
 
-def define(ecosystem: Environment, name: str, value: Optional[int]) -> Environment:
+def define(ecosystem: Environment, name: str, value: Value) -> Environment:
     """ """
     assert ecosystem.values is not None
     ecosystem.values[name] = value
@@ -37,7 +41,7 @@ def define(ecosystem: Environment, name: str, value: Optional[int]) -> Environme
     return ecosystem
 
 
-def get(ecosystem: Environment, individual_token: token_class.Token) -> Optional[int]:
+def get(ecosystem: Environment, individual_token: token_class.Token) -> Value:
     """ """
     assert ecosystem.values is not None
     lexeme = individual_token.lexeme
@@ -52,7 +56,7 @@ def get(ecosystem: Environment, individual_token: token_class.Token) -> Optional
 
 
 def assign(
-    ecosystem: Environment, individual_token: token_class.Token, value: Optional[int]
+    ecosystem: Environment, individual_token: token_class.Token, value: Value
 ) -> Environment:
     """ """
     assert ecosystem.values is not None

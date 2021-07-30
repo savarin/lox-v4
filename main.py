@@ -12,7 +12,6 @@ import vm
 
 def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
     """ """
-
     result: List[Tuple[str, int]] = []
 
     def traverse(expression: expr.Expr, counter: int):
@@ -25,6 +24,13 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
             result.append((f"Binary {expression.operator.lexeme}", counter))
             traverse(expression.left, counter + 1)
             traverse(expression.right, counter + 1)
+
+        elif isinstance(expression, expr.Call):
+            result.append(("Call", counter))
+            traverse(expression.callee, counter + 1)
+
+            for argument in expression.arguments:
+                traverse(argument, counter + 2)
 
         elif isinstance(expression, expr.Grouping):
             result.append(("Grouping", counter))
@@ -52,7 +58,13 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
             result.append(("Expression", counter))
             traverse(statement.expression, counter + 1)
 
-        if isinstance(statement, statem.If):
+        elif isinstance(statement, statem.Function):
+            result.append((f"Function {statement.name.lexeme}", counter))
+
+            for function_statement in statement.body:
+                expose(function_statement, counter + 1)
+
+        elif isinstance(statement, statem.If):
             result.append(("If", counter))
             expose(statement.then_branch, counter + 1)
 
@@ -132,10 +144,17 @@ def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> N
 
 if __name__ == "__main__":
     while True:
-        source = input("> ")
-        # source = "let a; a = 2 + 3; print a + 4;"
-        # source = "let a = 1; print a; { a = 2 ; print a; } print a;"
-        # source = "{ if (1 > 0) 2; else 3; }"
+        flag = 1
+
+        if flag == 0:
+            source = input("> ")
+        else:
+            # source = "let a; a = 2 + 3; print a + 4;"
+            # source = "let a = 1; print a; { a = 2 ; print a; } print a;"
+            # source = "{ if (1 > 0) 2; else 3; }"
+            # source = "fun add(a, b) { print a + b; } add(1, 2);"
+            source = "fun count(n) { if (n> 1) count(n - 1); n; } count(3);"
+            pass
 
         if not source:
             break
@@ -156,5 +175,7 @@ if __name__ == "__main__":
         # run(statements, bytecode)
         run(statements, None)
 
-        print("")
-        # break
+        if flag == 0:
+            print("")
+        else:
+            break

@@ -9,6 +9,7 @@ class TokenType(enum.Enum):
     RIGHT_PAREN = "RIGHT_PAREN"
     LEFT_BRACE = "LEFT_BRACE"
     RIGHT_BRACE = "RIGHT_BRACE"
+    COMMA = "COMMA"
     MINUS = "MINUS"
     PLUS = "PLUS"
     SEMICOLON = "SEMICOLON"
@@ -31,6 +32,7 @@ class TokenType(enum.Enum):
 
     # Keywords
     ELSE = "ELSE"
+    FUN = "FUN"
     IF = "IF"
     LET = "LET"
     PRINT = "PRINT"
