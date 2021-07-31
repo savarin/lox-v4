@@ -1,25 +1,10 @@
 from typing import List, Optional, Tuple
 import dataclasses
-import functools
 
 import expr
 import statem
 import token_class
 import token_type
-
-
-def expose(f):
-    """ """
-
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        if args[0].debug_level >= 1:
-            args[0].debug_log.append(f.__name__)
-
-        value = f(*args, **kwargs)
-        return value
-
-    return wrapper
 
 
 class ParseError(Exception):
@@ -55,7 +40,6 @@ def parse(processor: Parser) -> List[statem.Statem]:
     return statements
 
 
-@expose
 def declaration(processor: Parser) -> Tuple[Parser, Optional[statem.Statem]]:
     """ """
     try:
@@ -75,7 +59,6 @@ def declaration(processor: Parser) -> Tuple[Parser, Optional[statem.Statem]]:
         return synchronize(processor), None
 
 
-@expose
 def function(processor: Parser, kind: str) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, name = consume(
@@ -112,7 +95,6 @@ def function(processor: Parser, kind: str) -> Tuple[Parser, statem.Statem]:
     return processor, statem.Function(name, parameters, body)
 
 
-@expose
 def var_declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, name = consume(
@@ -134,7 +116,6 @@ def var_declaration(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return processor, statem.Var(name, initializer)
 
 
-@expose
 def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, is_match = match(processor, [token_type.TokenType.IF])
@@ -161,7 +142,6 @@ def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return expression_statement(processor)
 
 
-@expose
 def if_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, _ = consume(
@@ -186,7 +166,6 @@ def if_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return processor, statem.If(condition, then_branch, else_branch)
 
 
-@expose
 def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, individual_expression = expression(processor)
@@ -197,7 +176,6 @@ def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return processor, statem.Print(individual_expression)
 
 
-@expose
 def return_statement(processor: Parser) -> Tuple[Parser, statem.Return]:
     keyword = previous(processor)
     value = None
@@ -212,7 +190,6 @@ def return_statement(processor: Parser) -> Tuple[Parser, statem.Return]:
     return processor, statem.Return(keyword, value)
 
 
-@expose
 def block(processor: Parser) -> Tuple[Parser, List[statem.Statem]]:
     """ """
     statements: List[statem.Statem] = []
@@ -232,7 +209,6 @@ def block(processor: Parser) -> Tuple[Parser, List[statem.Statem]]:
     return processor, statements
 
 
-@expose
 def expression_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     """ """
     processor, individual_expression = expression(processor)
@@ -243,13 +219,11 @@ def expression_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     return processor, statem.Expression(individual_expression)
 
 
-@expose
 def expression(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     return assignment(processor)
 
 
-@expose
 def assignment(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, term_expression = equality(processor)
@@ -268,7 +242,6 @@ def assignment(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, term_expression
 
 
-@expose
 def equality(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, comparison_expression = comparison(processor)
@@ -289,7 +262,6 @@ def equality(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, comparison_expression
 
 
-@expose
 def comparison(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, term_expression = term(processor)
@@ -315,7 +287,6 @@ def comparison(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, term_expression
 
 
-@expose
 def term(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, factor_expression = factor(processor)
@@ -335,7 +306,6 @@ def term(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, factor_expression
 
 
-@expose
 def factor(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, unary_expression = unary(processor)
@@ -355,7 +325,6 @@ def factor(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, unary_expression
 
 
-@expose
 def unary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     while True:
@@ -371,7 +340,6 @@ def unary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return call(processor)
 
 
-@expose
 def call(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, primary_expression = primary(processor)
@@ -387,7 +355,6 @@ def call(processor: Parser) -> Tuple[Parser, expr.Expr]:
     return processor, primary_expression
 
 
-@expose
 def finish_call(processor: Parser, callee: expr.Expr) -> Tuple[Parser, expr.Expr]:
     """ """
     arguments: List[expr.Expr] = []
@@ -409,7 +376,6 @@ def finish_call(processor: Parser, callee: expr.Expr) -> Tuple[Parser, expr.Expr
     return processor, expr.Call(callee, paren, arguments)
 
 
-@expose
 def primary(processor: Parser) -> Tuple[Parser, expr.Expr]:
     """ """
     processor, is_match = match(processor, [token_type.TokenType.NUMBER])

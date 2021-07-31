@@ -151,17 +151,7 @@ def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> N
 
 if __name__ == "__main__":
     while True:
-        flag = 1
-
-        if flag == 0:
-            source = input("> ")
-        else:
-            # source = "let a; a = 2 + 3; print a + 4;"
-            # source = "let a = 1; print a; { a = 2 ; print a; } print a;"
-            # source = "{ if (1 > 0) 2; else 3; }"
-            # source = "fun add(a, b) { print a + b; } add(1, 2);"
-            source = "fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
-            pass
+        source = input("> ")
 
         if not source:
             break
@@ -182,7 +172,4 @@ if __name__ == "__main__":
         # run(statements, bytecode)
         run(statements, None)
 
-        if flag == 0:
-            print("")
-        else:
-            break
+        print("")
