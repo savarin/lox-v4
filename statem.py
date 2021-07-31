@@ -52,6 +52,14 @@ class Print(Statem):
 
 
 @dataclasses.dataclass
+class Return(Statem):
+    """ """
+
+    keyword: token_class.Token
+    value: Optional[expr.Expr]
+
+
+@dataclasses.dataclass
 class Var(Statem):
     """ """
 

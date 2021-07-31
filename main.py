@@ -66,6 +66,7 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
 
         elif isinstance(statement, statem.If):
             result.append(("If", counter))
+            traverse(statement.condition, counter + 1)
             expose(statement.then_branch, counter + 1)
 
             if statement.else_branch is not None:
@@ -74,6 +75,12 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
         elif isinstance(statement, statem.Print):
             result.append(("Print", counter))
             traverse(statement.expression, counter + 1)
+
+        elif isinstance(statement, statem.Return):
+            result.append((f"Return {statement.keyword.lexeme}", counter))
+
+            if statement.value is not None:
+                traverse(statement.value, counter + 1)
 
         elif isinstance(statement, statem.Var):
             result.append((f"Var {statement.name.lexeme}", counter))
@@ -153,7 +160,7 @@ if __name__ == "__main__":
             # source = "let a = 1; print a; { a = 2 ; print a; } print a;"
             # source = "{ if (1 > 0) 2; else 3; }"
             # source = "fun add(a, b) { print a + b; } add(1, 2);"
-            source = "fun count(n) { if (n> 1) count(n - 1); n; } count(3);"
+            source = "fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
             pass
 
         if not source:

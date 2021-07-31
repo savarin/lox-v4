@@ -83,3 +83,21 @@ print c;"""
     assert result[12] == "1"
     assert result[13] == "2"
     assert result[14] == "3"
+
+
+def test_basic_function() -> None:
+    """ """
+    result = source_to_result(source="fun add(a, b) { print a + b; } add(1, 2);")
+
+    assert result[0] is None
+    assert result[1] == "3"
+
+
+def test_recursive_function() -> None:
+    """ """
+    result = source_to_result(
+        source="fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
+    )
+
+    assert result[0] is None
+    assert result[1] == 3

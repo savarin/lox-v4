@@ -11,6 +11,13 @@ Result = Union[int, str, None]
 
 
 @dataclasses.dataclass
+class Return(Exception):
+    """ """
+
+    value: Union[Result, List[Result], statem.Function]
+
+
+@dataclasses.dataclass
 class Interpreter:
     """ """
 
@@ -75,6 +82,14 @@ def execute(
         assert result is None or isinstance(result, int)
 
         return inspector, [stringify(result)]
+
+    elif isinstance(statement, statem.Return):
+        value = None
+
+        if statement.value is not None:
+            value = evaluate(inspector, statement.value)
+
+        raise Return(value)
 
     elif isinstance(statement, statem.Var):
         value = None
@@ -212,14 +227,18 @@ def evaluate(
 
 def call(
     inspector: Interpreter, function: statem.Function, arguments: List[int]
-) -> List[Result]:
+) -> Union[Result, List[Result], statem.Function]:
     """ """
     ecosystem = environment.init_environment(inspector.ecosystem)
 
     for i, parameter in enumerate(function.parameters):
         ecosystem = environment.define(ecosystem, parameter.lexeme, arguments[i])
 
-    _, result = execute_block(inspector, function.body, ecosystem)
+    try:
+        _, result = execute_block(inspector, function.body, ecosystem)
+    except Return as return_value:
+        return return_value.value
+
     return result
 
 

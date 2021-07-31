@@ -11,6 +11,7 @@ keywords: Dict[str, token_type.TokenType] = {
     "if": token_type.TokenType.IF,
     "let": token_type.TokenType.LET,
     "print": token_type.TokenType.PRINT,
+    "return": token_type.TokenType.RETURN,
 }
 
 

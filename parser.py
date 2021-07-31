@@ -147,6 +147,11 @@ def statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     if is_match:
         return print_statement(processor)
 
+    processor, is_match = match(processor, [token_type.TokenType.RETURN])
+
+    if is_match:
+        return return_statement(processor)
+
     processor, is_match = match(processor, [token_type.TokenType.LEFT_BRACE])
 
     if is_match:
@@ -190,6 +195,21 @@ def print_statement(processor: Parser) -> Tuple[Parser, statem.Statem]:
     )
 
     return processor, statem.Print(individual_expression)
+
+
+@expose
+def return_statement(processor: Parser) -> Tuple[Parser, statem.Return]:
+    keyword = previous(processor)
+    value = None
+
+    if not check(processor, token_type.TokenType.SEMICOLON):
+        processor, value = expression(processor)
+
+    processor, _ = consume(
+        processor, token_type.TokenType.SEMICOLON, "Expect ';' after return value."
+    )
+
+    return processor, statem.Return(keyword, value)
 
 
 @expose
