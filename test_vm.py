@@ -13,7 +13,10 @@ def source_to_result(source: str) -> int:
     composer = compiler.init_compiler(statements=statements)
     bytecode = compiler.compile(composer)
     emulator = vm.init_vm(bytecode=bytecode)
-    return vm.run(emulator)[0][0]
+    result = vm.run(emulator)[0]
+
+    assert isinstance(result, int)
+    return result
 
 
 def test_run() -> None:

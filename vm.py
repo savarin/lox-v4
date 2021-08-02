@@ -1,7 +1,10 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 import dataclasses
 
 import compiler
+
+
+Result = Union[int, str, None]
 
 
 STACK_MAX = 8
@@ -71,10 +74,9 @@ def is_at_end(emulator: VM) -> bool:
     return emulator.ip == len(emulator.bytecode)
 
 
-def run(emulator: VM) -> Tuple[List[int], List[str]]:
+def run(emulator: VM) -> List[Result]:
     """ """
-    expression_results: List[int] = []
-    print_results: List[str] = []
+    result: List[Result] = []
 
     while not is_at_end(emulator):
         emulator, instruction = read_byte(emulator)
@@ -84,8 +86,8 @@ def run(emulator: VM) -> Tuple[List[int], List[str]]:
             emulator = push(emulator, constant)
 
         if instruction == compiler.OpCode.OP_POP:
-            emulator, result = pop(emulator)
-            expression_results.append(result)
+            emulator, individual_result = pop(emulator)
+            result.append(individual_result)
 
         elif instruction == compiler.OpCode.OP_ADD:
             emulator = binary_op(emulator, "+")
@@ -105,7 +107,7 @@ def run(emulator: VM) -> Tuple[List[int], List[str]]:
             emulator = push(emulator, constant)
 
         elif instruction == compiler.OpCode.OP_PRINT:
-            emulator, result = pop(emulator)
-            print_results.append(str(result))
+            emulator, individual_result = pop(emulator)
+            result.append(str(individual_result))
 
-    return expression_results, print_results
+    return result

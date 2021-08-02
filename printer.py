@@ -148,6 +148,6 @@ def level(statements: List[statem.Statem], counter: int) -> List[Tuple[str, int]
                 traverse(statement.initializer, counter + 1)
 
     for statement in statements:
-        expose(statement, counter=1)
+        expose(statement, counter=0)
 
     return result

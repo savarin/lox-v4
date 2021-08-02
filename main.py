@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import compiler
 import interpreter
@@ -37,12 +37,15 @@ def compile(statements: List[statem.Statem]) -> List[compiler.ByteCode]:
     return bytecode
 
 
-def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> None:
+def run(
+    statements: List[statem.Statem], bytecode: Optional[List[compiler.ByteCode]]
+) -> None:
     """ """
-    # emulator = vm.init_vm(bytecode=bytecode)
-    inspector = interpreter.init_interpreter(statements=statements)
+    if bytecode is not None:
+        emulator = vm.init_vm(bytecode=bytecode)
+        print(f"    compiled    : {vm.run(emulator)}")
 
-    # print(f"    compiled    : {vm.run(emulator)}")
+    inspector = interpreter.init_interpreter(statements=statements)
     print(f"    interpreted : {interpreter.interpret(inspector)}")
 
 
