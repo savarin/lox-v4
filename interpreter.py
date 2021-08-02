@@ -22,12 +22,16 @@ class Interpreter:
     """ """
 
     statements: List[statem.Statem]
-    ecosystem: environment.Environment
+    ecosystem: Optional[environment.Environment]
 
 
-def init_interpreter(statements: List[statem.Statem]) -> Interpreter:
+def init_interpreter(
+    statements: List[statem.Statem], ecosystem: Optional[environment.Environment] = None
+) -> Interpreter:
     """ """
-    ecosystem = environment.init_environment()
+    if ecosystem is None:
+        ecosystem = environment.init_environment()
+
     return Interpreter(statements=statements, ecosystem=ecosystem)
 
 
@@ -46,6 +50,8 @@ def execute(
     inspector: Interpreter, statement: statem.Statem
 ) -> Tuple[Interpreter, List[Result]]:
     """ """
+    assert inspector.ecosystem is not None
+
     if isinstance(statement, statem.Block):
         ecosystem = environment.init_environment(inspector.ecosystem)
         return execute_block(inspector, statement.statements, ecosystem)
@@ -142,6 +148,8 @@ def evaluate(
     inspector: Interpreter, expression: expr.Expr
 ) -> Union[Result, List[Result], statem.Function]:
     """ """
+    assert inspector.ecosystem is not None
+
     if isinstance(expression, expr.Assign):
         value = evaluate(inspector, expression.value)
 

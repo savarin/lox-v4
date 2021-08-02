@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import compiler
+import environment
 import interpreter
 import parser
 import printer
@@ -38,18 +39,25 @@ def compile(statements: List[statem.Statem]) -> List[compiler.ByteCode]:
 
 
 def run(
-    statements: List[statem.Statem], bytecode: Optional[List[compiler.ByteCode]]
-) -> None:
+    statements: List[statem.Statem],
+    bytecode: Optional[List[compiler.ByteCode]],
+    ecosystem: Optional[environment.Environment],
+) -> environment.Environment:
     """ """
     if bytecode is not None:
         emulator = vm.init_vm(bytecode=bytecode)
         print(f"    compiled    : {vm.run(emulator)}")
 
-    inspector = interpreter.init_interpreter(statements=statements)
+    inspector = interpreter.init_interpreter(statements=statements, ecosystem=ecosystem)
     print(f"    interpreted : {interpreter.interpret(inspector)}")
+
+    assert inspector.ecosystem is not None
+    return inspector.ecosystem
 
 
 if __name__ == "__main__":
+    ecosystem = None
+
     while True:
         source = input("> ")
 
@@ -66,10 +74,10 @@ if __name__ == "__main__":
         statements = parse(tokens)
 
         print("\n<compiler>")
-        bytecode = compile(statements)
+        # bytecode = compile(statements)
 
         print("\n<output>")
         # run(statements, bytecode)
-        run(statements, None)
+        ecosystem = run(statements, None, ecosystem)
 
         print("")
