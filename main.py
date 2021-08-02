@@ -77,7 +77,7 @@ def pprint(statements: List[statem.Statem], counter: int = 0) -> None:
             traverse(statement.expression, counter + 1)
 
         elif isinstance(statement, statem.Return):
-            result.append((f"Return {statement.keyword.lexeme}", counter))
+            result.append((f"Return", counter))
 
             if statement.value is not None:
                 traverse(statement.value, counter + 1)
@@ -151,7 +151,15 @@ def run(statements: List[statem.Statem], bytecode: List[compiler.ByteCode]) -> N
 
 if __name__ == "__main__":
     while True:
-        source = input("> ")
+        # source = input("> ")
+        source = """\
+fun fib(n) {
+    if (n <= 1) return n;
+    return fib(n - 2) + fib(n - 1);
+}
+
+fib(9);"""
+        # source = "fun count(n) { if (n > 1) count(n - 1); return n; } count(3);"
 
         if not source:
             break
@@ -173,3 +181,4 @@ if __name__ == "__main__":
         run(statements, None)
 
         print("")
+        break
