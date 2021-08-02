@@ -6,57 +6,57 @@ import statem
 import token_class
 
 
-Array = Union[List[token_class.Token], List[statem.Statem], List[compiler.ByteCode]]
+Items = Union[List[token_class.Token], List[statem.Statem], List[compiler.ByteCode]]
 
 
-def pprint(array: Array, counter: int = 0) -> None:
+def pprint(items: Items, counter: int = 0) -> None:
     """ """
-    for line in convert(array, counter):
+    for line in convert(items, counter):
         print(line)
 
 
-def convert(array: Array, counter: int) -> List[str]:
+def convert(items: Items, counter: int) -> List[str]:
     """ """
     result: List[str] = []
 
-    if isinstance(array[0], token_class.Token):
-        for individual_token in array:
+    if isinstance(items[0], token_class.Token):
+        for individual_token in items:
             assert isinstance(individual_token, token_class.Token)
             result.append(
                 indent(f"TokenType.{individual_token.token_type._name_}", counter)
             )
 
-    elif isinstance(array[0], statem.Statem):
+    elif isinstance(items[0], statem.Statem):
         statements: List[statem.Statem] = []
 
-        for statement in array:
+        for statement in items:
             assert isinstance(statement, statem.Statem)
             statements.append(statement)
 
         for parse_tuple in level(statements, counter):
             result.append(indent(parse_tuple[0], parse_tuple[1]))
 
-    elif isinstance(array[0], compiler.OpCode):
+    elif isinstance(items[0], compiler.OpCode):
         bytecode: List[compiler.ByteCode] = []
         current = 0
 
-        for individual_bytecode in array:
+        for individual_bytecode in items:
             assert isinstance(individual_bytecode, compiler.OpCode) or isinstance(
                 individual_bytecode, int
             )
             bytecode.append(individual_bytecode)
 
         while True:
-            if current >= len(array):
+            if current >= len(items):
                 break
 
-            individual_bytecode = array[current]
+            individual_bytecode = items[current]
             assert isinstance(individual_bytecode, compiler.OpCode)
             line = indent(f"OpCode.{individual_bytecode._name_}", counter)
             current += 1
 
             if individual_bytecode == compiler.OpCode.OP_CONSTANT:
-                line += f" {str(array[current])}"
+                line += f" {str(items[current])}"
                 current += 1
 
             result.append(line)
