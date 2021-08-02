@@ -19,10 +19,7 @@ class VM:
 
 def init_vm(bytecode: List[compiler.ByteCode]) -> VM:
     """ """
-    emulator = VM(bytecode=bytecode)
-    emulator.stack = [None] * STACK_MAX
-
-    return emulator
+    return VM(bytecode=bytecode, stack=[None] * STACK_MAX)
 
 
 def push(emulator: VM, value: int) -> VM:
@@ -36,8 +33,9 @@ def push(emulator: VM, value: int) -> VM:
 
 def pop(emulator: VM) -> Tuple[VM, int]:
     """ """
-    emulator.top -= 1
     assert emulator.stack is not None
+    emulator.top -= 1
+
     value = emulator.stack[emulator.top]
 
     assert value is not None
@@ -73,14 +71,21 @@ def is_at_end(emulator: VM) -> bool:
     return emulator.ip == len(emulator.bytecode)
 
 
-def run(emulator: VM) -> int:
+def run(emulator: VM) -> Tuple[List[int], List[str]]:
     """ """
+    expression_results: List[int] = []
+    print_results: List[str] = []
+
     while not is_at_end(emulator):
         emulator, instruction = read_byte(emulator)
 
         if instruction == compiler.OpCode.OP_CONSTANT:
             emulator, constant = read_constant(emulator)
             emulator = push(emulator, constant)
+
+        if instruction == compiler.OpCode.OP_POP:
+            emulator, result = pop(emulator)
+            expression_results.append(result)
 
         elif instruction == compiler.OpCode.OP_ADD:
             emulator = binary_op(emulator, "+")
@@ -99,5 +104,8 @@ def run(emulator: VM) -> int:
             constant = -constant
             emulator = push(emulator, constant)
 
-    _, result = pop(emulator)
-    return result
+        elif instruction == compiler.OpCode.OP_PRINT:
+            emulator, result = pop(emulator)
+            print_results.append(str(result))
+
+    return expression_results, print_results
