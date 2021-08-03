@@ -10,6 +10,9 @@ import token_type
 ByteCode = Union["OpCode", int]
 
 
+INT_COUNT = 8
+
+
 class OpCode(enum.Enum):
     """ """
 
@@ -45,36 +48,66 @@ def init_compiler(statements: List[statem.Statem]) -> Compiler:
 
 def compile(composer: Compiler) -> List[ByteCode]:
     """ """
-
-    def traverse(expression: expr.Expr):
-        """ """
-        if isinstance(expression, expr.Literal):
-            bytecode.append(OpCode.OP_CONSTANT)
-            bytecode.append(expression.value)
-
-        elif isinstance(expression, expr.Grouping):
-            traverse(expression.expression)
-
-        elif isinstance(expression, expr.Unary):
-            traverse(expression.right)
-            bytecode.append(OpCode.OP_NEGATE)
-
-        elif isinstance(expression, expr.Binary):
-            traverse(expression.left)
-            traverse(expression.right)
-
-            operator = operator_mapping[expression.operator.token_type]
-            bytecode.append(operator)
-
     bytecode: List[ByteCode] = []
 
     for statement in composer.statements:
-        if isinstance(statement, statem.Expression):
-            traverse(statement.expression)
-            bytecode.append(OpCode.OP_POP)
+        individual_bytecode = execute(statement)
+        bytecode += individual_bytecode
 
-        elif isinstance(statement, statem.Print):
-            traverse(statement.expression)
-            bytecode.append(OpCode.OP_PRINT)
+    return bytecode
+
+
+def execute(statement: statem.Statem) -> List[ByteCode]:
+    """ """
+    if isinstance(statement, statem.Block):
+        return execute_block(statement.statements)
+
+    if isinstance(statement, statem.Expression):
+        bytecode = evaluate(statement.expression)
+        bytecode.append(OpCode.OP_POP)
+
+        return bytecode
+
+    elif isinstance(statement, statem.Print):
+        bytecode = evaluate(statement.expression)
+        bytecode.append(OpCode.OP_PRINT)
+
+        return bytecode
+
+    raise Exception
+
+
+def execute_block(statements: List[statem.Statem]) -> List[ByteCode]:
+    """ """
+    bytecode: List[ByteCode] = []
+
+    for statement in statements:
+        individual_bytecode = execute(statement)
+        bytecode += individual_bytecode
+
+    return bytecode
+
+
+def evaluate(expression: expr.Expr) -> List[ByteCode]:
+    """ """
+    bytecode: List[ByteCode] = []
+
+    if isinstance(expression, expr.Binary):
+        bytecode += evaluate(expression.left)
+        bytecode += evaluate(expression.right)
+
+        operator = operator_mapping[expression.operator.token_type]
+        bytecode.append(operator)
+
+    elif isinstance(expression, expr.Grouping):
+        bytecode += evaluate(expression.expression)
+
+    elif isinstance(expression, expr.Literal):
+        bytecode.append(OpCode.OP_CONSTANT)
+        bytecode.append(expression.value)
+
+    elif isinstance(expression, expr.Unary):
+        bytecode += evaluate(expression.right)
+        bytecode.append(OpCode.OP_NEGATE)
 
     return bytecode

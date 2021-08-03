@@ -22,7 +22,7 @@ def scan(source: str) -> List[token_class.Token]:
 
 def parse(tokens: List[token_class.Token]) -> List[statem.Statem]:
     """ """
-    processor = parser.init_parser(tokens=tokens, debug_level=1)
+    processor = parser.init_parser(tokens=tokens)
     statements = parser.parse(processor)
 
     printer.pprint(statements, counter=1)
@@ -74,10 +74,10 @@ if __name__ == "__main__":
         statements = parse(tokens)
 
         print("\n<compiler>")
-        # bytecode = compile(statements)
+        bytecode = compile(statements)
 
         print("\n<output>")
-        # run(statements, bytecode)
-        ecosystem = run(statements, None, ecosystem)
+        # run(statements, bytecode, ecosystem)
+        ecosystem = run(statements, bytecode, ecosystem)
 
         print("")

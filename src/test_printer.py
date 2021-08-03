@@ -18,7 +18,7 @@ def execute(source: str, convert_to_bytecode: bool = False) -> ResultTuple:
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
 
-    processor = parser.init_parser(tokens=tokens, debug_level=1)
+    processor = parser.init_parser(tokens=tokens)
     statements = parser.parse(processor)
 
     bytecode = None
