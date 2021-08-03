@@ -29,7 +29,7 @@ def parse(tokens: List[token_class.Token]) -> List[statem.Statem]:
     return statements
 
 
-def compile(statements: List[statem.Statem]) -> List[compiler.ByteCode]:
+def compile(statements: List[statem.Statem]) -> List[compiler.Byte]:
     """ """
     composer = compiler.init_compiler(statements=statements)
     bytecode = compiler.compile(composer)
@@ -40,7 +40,7 @@ def compile(statements: List[statem.Statem]) -> List[compiler.ByteCode]:
 
 def run(
     statements: List[statem.Statem],
-    bytecode: Optional[List[compiler.ByteCode]],
+    bytecode: Optional[List[compiler.Byte]],
     ecosystem: Optional[environment.Environment],
 ) -> environment.Environment:
     """ """
@@ -77,7 +77,6 @@ if __name__ == "__main__":
         bytecode = compile(statements)
 
         print("\n<output>")
-        # run(statements, bytecode, ecosystem)
-        ecosystem = run(statements, bytecode, ecosystem)
+        ecosystem = run(statements, None, ecosystem)
 
         print("")

@@ -5,7 +5,7 @@ import parser
 import scanner
 
 
-def source_to_bytecode(source: str) -> List[compiler.ByteCode]:
+def source_to_bytecode(source: str) -> List[compiler.Byte]:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
@@ -43,3 +43,20 @@ def test_compile() -> None:
     assert bytecode[9] == compiler.OpCode.OP_SUBTRACT
     assert bytecode[10] == compiler.OpCode.OP_MULTIPLY
     assert bytecode[11] == compiler.OpCode.OP_POP
+
+
+def test_assignment() -> None:
+    """ """
+    bytecode = source_to_bytecode(source="let a; print a;")
+    assert bytecode[0] == compiler.OpCode.OP_CONSTANT
+    assert bytecode[1] is None
+    assert bytecode[2] == compiler.OpCode.OP_GET
+    assert bytecode[3] == 0
+    assert bytecode[4] == compiler.OpCode.OP_PRINT
+
+    bytecode = source_to_bytecode(source="let a = 1; print a;")
+    assert bytecode[0] == compiler.OpCode.OP_CONSTANT
+    assert bytecode[1] == 1
+    assert bytecode[2] == compiler.OpCode.OP_GET
+    assert bytecode[3] == 0
+    assert bytecode[4] == compiler.OpCode.OP_PRINT

@@ -6,7 +6,7 @@ import statem
 import token_class
 
 
-Items = Union[List[token_class.Token], List[statem.Statem], List[compiler.ByteCode]]
+Items = Union[List[token_class.Token], List[statem.Statem], List[compiler.Byte]]
 
 
 def pprint(items: Items, counter: int = 0) -> None:
@@ -18,6 +18,9 @@ def pprint(items: Items, counter: int = 0) -> None:
 def convert(items: Items, counter: int) -> List[str]:
     """ """
     result: List[str] = []
+
+    if len(items) == 0:
+        return result
 
     if isinstance(items[0], token_class.Token):
         for individual_token in items:
@@ -37,12 +40,14 @@ def convert(items: Items, counter: int) -> List[str]:
             result.append(indent(parse_tuple[0], parse_tuple[1]))
 
     elif isinstance(items[0], compiler.OpCode):
-        bytecode: List[compiler.ByteCode] = []
+        bytecode: List[compiler.Byte] = []
         current = 0
 
         for individual_bytecode in items:
-            assert isinstance(individual_bytecode, compiler.OpCode) or isinstance(
-                individual_bytecode, int
+            assert (
+                isinstance(individual_bytecode, compiler.OpCode)
+                or isinstance(individual_bytecode, int)
+                or individual_bytecode is None
             )
             bytecode.append(individual_bytecode)
 
@@ -55,7 +60,10 @@ def convert(items: Items, counter: int) -> List[str]:
             line = indent(f"OpCode.{individual_bytecode._name_}", counter)
             current += 1
 
-            if individual_bytecode == compiler.OpCode.OP_CONSTANT:
+            if individual_bytecode in [
+                compiler.OpCode.OP_CONSTANT,
+                compiler.OpCode.OP_GET,
+            ]:
                 line += f" {str(items[current])}"
                 current += 1
 

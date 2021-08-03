@@ -9,7 +9,7 @@ import statem
 
 
 ResultTuple = Tuple[
-    List[token_class.Token], List[statem.Statem], Optional[List[compiler.ByteCode]]
+    List[token_class.Token], List[statem.Statem], Optional[List[compiler.Byte]]
 ]
 
 

@@ -14,13 +14,13 @@ STACK_MAX = 8
 class VM:
     """ """
 
-    bytecode: List[compiler.ByteCode]
+    bytecode: List[compiler.Byte]
     ip: int = 0
     stack: Optional[List[Optional[int]]] = None
     top: int = 0
 
 
-def init_vm(bytecode: List[compiler.ByteCode]) -> VM:
+def init_vm(bytecode: List[compiler.Byte]) -> VM:
     """ """
     return VM(bytecode=bytecode, stack=[None] * STACK_MAX)
 
@@ -45,7 +45,7 @@ def pop(emulator: VM) -> Tuple[VM, int]:
     return emulator, value
 
 
-def read_byte(emulator: VM) -> Tuple[VM, compiler.ByteCode]:
+def read_byte(emulator: VM) -> Tuple[VM, compiler.Byte]:
     """ """
     emulator.ip += 1
     instruction = emulator.bytecode[emulator.ip - 1]
