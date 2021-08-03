@@ -1,9 +1,10 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Tuple, Union
 import dataclasses
 import enum
 
 import expr
 import statem
+import token_class
 import token_type
 
 
@@ -35,6 +36,31 @@ operator_mapping: Dict[token_type.TokenType, OpCode] = {
 
 
 @dataclasses.dataclass
+class Local:
+    """ """
+
+    name: token_class.Token
+    depth: int
+
+
+@dataclasses.dataclass
+class Locals:
+    """ """
+
+    array: List[Optional[Local]]
+    local_count: int
+    scope_depth: int
+
+
+def init_locals(array: Optional[List[Optional[Local]]] = None) -> Locals:
+    """ """
+    if array is None:
+        array = [None] * INT_COUNT
+
+    return Locals(array=array, local_count=0, scope_depth=0)
+
+
+@dataclasses.dataclass
 class Compiler:
     """ """
 
@@ -49,65 +75,85 @@ def init_compiler(statements: List[statem.Statem]) -> Compiler:
 def compile(composer: Compiler) -> List[ByteCode]:
     """ """
     bytecode: List[ByteCode] = []
+    listing = init_locals()
 
     for statement in composer.statements:
-        individual_bytecode = execute(statement)
+        individual_bytecode, listing = execute(statement, listing)
         bytecode += individual_bytecode
 
     return bytecode
 
 
-def execute(statement: statem.Statem) -> List[ByteCode]:
+def execute(statement: statem.Statem, listing: Locals) -> Tuple[List[ByteCode], Locals]:
     """ """
+    bytecode: List[ByteCode] = []
+
     if isinstance(statement, statem.Block):
-        return execute_block(statement.statements)
+        return execute_block(statement.statements, listing)
 
     if isinstance(statement, statem.Expression):
-        bytecode = evaluate(statement.expression)
+        individual_bytecode, listing = evaluate(statement.expression, listing)
+        bytecode += individual_bytecode
         bytecode.append(OpCode.OP_POP)
 
-        return bytecode
+        return bytecode, listing
 
     elif isinstance(statement, statem.Print):
-        bytecode = evaluate(statement.expression)
+        individual_bytecode, listing = evaluate(statement.expression, listing)
+        bytecode += individual_bytecode
         bytecode.append(OpCode.OP_PRINT)
 
-        return bytecode
+        return bytecode, listing
 
     raise Exception
 
 
-def execute_block(statements: List[statem.Statem]) -> List[ByteCode]:
+def execute_block(
+    statements: List[statem.Statem], listing: Locals
+) -> Tuple[List[ByteCode], Locals]:
     """ """
     bytecode: List[ByteCode] = []
 
     for statement in statements:
-        individual_bytecode = execute(statement)
+        individual_bytecode, listing = execute(statement, listing)
         bytecode += individual_bytecode
 
-    return bytecode
+    return bytecode, listing
 
 
-def evaluate(expression: expr.Expr) -> List[ByteCode]:
+def evaluate(expression: expr.Expr, listing: Locals) -> Tuple[List[ByteCode], Locals]:
     """ """
     bytecode: List[ByteCode] = []
 
     if isinstance(expression, expr.Binary):
-        bytecode += evaluate(expression.left)
-        bytecode += evaluate(expression.right)
+        left_bytecode, listing = evaluate(expression.left, listing)
+        right_bytecode, listing = evaluate(expression.right, listing)
+
+        bytecode += left_bytecode
+        bytecode += right_bytecode
 
         operator = operator_mapping[expression.operator.token_type]
         bytecode.append(operator)
 
+        return bytecode, listing
+
     elif isinstance(expression, expr.Grouping):
-        bytecode += evaluate(expression.expression)
+        individual_bytecode, listing = evaluate(expression.expression, listing)
+        bytecode += individual_bytecode
+
+        return bytecode, listing
 
     elif isinstance(expression, expr.Literal):
         bytecode.append(OpCode.OP_CONSTANT)
         bytecode.append(expression.value)
 
+        return bytecode, listing
+
     elif isinstance(expression, expr.Unary):
-        bytecode += evaluate(expression.right)
+        individual_bytecode, listing = evaluate(expression.right, listing)
+        bytecode += individual_bytecode
         bytecode.append(OpCode.OP_NEGATE)
 
-    return bytecode
+        return bytecode, listing
+
+    raise Exception
