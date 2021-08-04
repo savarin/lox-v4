@@ -41,11 +41,12 @@ def compile(statements: List[statem.Statem]) -> List[compiler.Byte]:
 def run(
     statements: List[statem.Statem],
     bytecode: Optional[List[compiler.Byte]],
+    values: Optional[compiler.Values],
     ecosystem: Optional[environment.Environment],
 ) -> environment.Environment:
     """ """
-    if bytecode is not None:
-        emulator = vm.init_vm(bytecode=bytecode)
+    if bytecode is not None and values is not None:
+        emulator = vm.init_vm(bytecode=bytecode, values=values)
         print(f"    compiled    : {vm.run(emulator)}")
 
     inspector = interpreter.init_interpreter(statements=statements, ecosystem=ecosystem)
@@ -77,6 +78,6 @@ if __name__ == "__main__":
         bytecode = compile(statements)
 
         print("\n<output>")
-        ecosystem = run(statements, None, ecosystem)
+        ecosystem = run(statements, None, None, ecosystem)
 
         print("")

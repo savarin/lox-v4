@@ -15,14 +15,15 @@ class VM:
     """ """
 
     bytecode: List[compiler.Byte]
+    values: compiler.Values
     ip: int = 0
     stack: Optional[List[Optional[int]]] = None
     top: int = 0
 
 
-def init_vm(bytecode: List[compiler.Byte]) -> VM:
+def init_vm(bytecode: List[compiler.Byte], values: compiler.Values) -> VM:
     """ """
-    return VM(bytecode=bytecode, stack=[None] * STACK_MAX)
+    return VM(bytecode=bytecode, values=values, stack=[None] * STACK_MAX)
 
 
 def push(emulator: VM, value: int) -> VM:
@@ -55,7 +56,10 @@ def read_byte(emulator: VM) -> Tuple[VM, compiler.Byte]:
 
 def read_constant(emulator: VM) -> Tuple[VM, int]:
     """ """
-    emulator, constant = read_byte(emulator)
+    emulator, offset = read_byte(emulator)
+
+    assert isinstance(offset, int)
+    constant = emulator.values.array[offset].value
 
     assert isinstance(constant, int)
     return emulator, constant
@@ -85,9 +89,15 @@ def run(emulator: VM) -> List[Result]:
             emulator, constant = read_constant(emulator)
             emulator = push(emulator, constant)
 
-        if instruction == compiler.OpCode.OP_POP:
+        elif instruction == compiler.OpCode.OP_POP:
             emulator, individual_result = pop(emulator)
             result.append(individual_result)
+
+        elif instruction == compiler.OpCode.OP_GET:
+            pass
+
+        elif instruction == compiler.OpCode.OP_SET:
+            pass
 
         elif instruction == compiler.OpCode.OP_ADD:
             emulator = binary_op(emulator, "+")
