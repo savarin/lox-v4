@@ -32,9 +32,9 @@ def parse(tokens: List[token_class.Token]) -> List[statem.Statem]:
 def compile(statements: List[statem.Statem]) -> List[compiler.Byte]:
     """ """
     composer = compiler.init_compiler(statements=statements)
-    bytecode = compiler.compile(composer)
+    bytecode, values = compiler.compile(composer)
 
-    printer.pprint(bytecode, counter=1)
+    printer.pprint(bytecode, counter=1, values=values)
     return bytecode
 
 

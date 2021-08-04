@@ -41,7 +41,7 @@ operator_mapping: Dict[token_type.TokenType, OpCode] = {
 class Local:
     """ """
 
-    name: token_class.Token
+    name: Optional[token_class.Token]
     depth: int
 
 
@@ -49,17 +49,44 @@ class Local:
 class Locals:
     """ """
 
-    array: List[Optional[Local]]
-    local_count: int
+    array: List[Local]
+    count: int
     scope_depth: int
 
 
-def init_locals(array: Optional[List[Optional[Local]]] = None) -> Locals:
+def init_locals() -> Locals:
     """ """
-    if array is None:
-        array = [None] * INT_COUNT
+    array = [Local(None, 0) for _ in range(INT_COUNT)]
+    return Locals(array=array, count=0, scope_depth=0)
 
-    return Locals(array=array, local_count=0, scope_depth=0)
+
+@dataclasses.dataclass
+class Value:
+    """ """
+
+    value: Optional[int]
+
+
+@dataclasses.dataclass
+class Values:
+    """ """
+
+    array: List[Value]
+    count: int
+
+
+def init_values() -> Values:
+    """ """
+    array: List[Value] = [Value(None) for _ in range(INT_COUNT)]
+    return Values(array=array, count=0)
+
+
+def write(vector: Values, constant: int):
+    """ """
+    vector.array[vector.count] = Value(constant)
+    vector.count += 1
+
+    return vector, vector.count - 1
 
 
 @dataclasses.dataclass
@@ -74,56 +101,61 @@ def init_compiler(statements: List[statem.Statem]) -> Compiler:
     return Compiler(statements=statements)
 
 
-def compile(composer: Compiler) -> List[Byte]:
+def compile(composer: Compiler) -> Tuple[List[Byte], Values]:
     """ """
     bytecode: List[Byte] = []
     listing = init_locals()
+    vector = init_values()
 
     for statement in composer.statements:
-        individual_bytecode, listing = execute(statement, listing)
+        individual_bytecode, listing, vector = execute(statement, listing, vector)
         bytecode += individual_bytecode
 
-    return bytecode
+    return bytecode, vector
 
 
-def execute(statement: statem.Statem, listing: Locals) -> Tuple[List[Byte], Locals]:
+def execute(
+    statement: statem.Statem, listing: Locals, vector: Values
+) -> Tuple[List[Byte], Locals, Values]:
     """ """
     bytecode: List[Byte] = []
 
     if isinstance(statement, statem.Block):
-        return execute_block(statement.statements, listing)
+        return execute_block(statement.statements, listing, vector)
 
-    if isinstance(statement, statem.Expression):
-        bytecode += evaluate(statement.expression, listing)
+    elif isinstance(statement, statem.Expression):
+        individual_bytecode, vector = evaluate(statement.expression, listing, vector)
+        bytecode += individual_bytecode
         bytecode.append(OpCode.OP_POP)
 
-        return bytecode, listing
+        return bytecode, listing, vector
 
     elif isinstance(statement, statem.Print):
-        bytecode += evaluate(statement.expression, listing)
+        individual_bytecode, vector = evaluate(statement.expression, listing, vector)
+        bytecode += individual_bytecode
         bytecode.append(OpCode.OP_PRINT)
 
-        return bytecode, listing
+        return bytecode, listing, vector
 
     elif isinstance(statement, statem.Var):
         value: List[Byte] = [OpCode.OP_CONSTANT, None]
 
         if statement.initializer is not None:
-            value = evaluate(statement.initializer, listing)
+            value, vector = evaluate(statement.initializer, listing, vector)
 
         bytecode += value
 
-        listing.array[listing.local_count] = Local(statement.name, listing.scope_depth)
-        listing.local_count += 1
+        listing.array[listing.count] = Local(statement.name, listing.scope_depth)
+        listing.count += 1
 
-        return bytecode, listing
+        return bytecode, listing, vector
 
     raise Exception
 
 
 def execute_block(
-    statements: List[statem.Statem], listing: Locals
-) -> Tuple[List[Byte], Locals]:
+    statements: List[statem.Statem], listing: Locals, vector: Values
+) -> Tuple[List[Byte], Locals, Values]:
     """ """
     bytecode: List[Byte] = []
 
@@ -131,77 +163,92 @@ def execute_block(
     listing.scope_depth += 1
 
     for statement in statements:
-        individual_bytecode, listing = execute(statement, listing)
+        individual_bytecode, listing, vector = execute(statement, listing, vector)
         bytecode += individual_bytecode
 
     # Decrease scope depth when exiting block and remove out of scope variables.
     listing.scope_depth -= 1
 
     while True:
-        local = listing.array[listing.local_count - 1]
+        local = listing.array[listing.count - 1]
         assert local is not None
 
-        if listing.local_count == 0 or local.depth <= listing.scope_depth:
+        if listing.count == 0 or local.depth <= listing.scope_depth:
             break
 
         bytecode.append(OpCode.OP_POP)
-        listing.local_count -= 1
+        listing.count -= 1
 
-    return bytecode, listing
+    return bytecode, listing, vector
 
 
-def evaluate(expression: expr.Expr, listing: Locals) -> List[Byte]:
+def evaluate(
+    expression: expr.Expr, listing: Locals, vector: Values
+) -> Tuple[List[Byte], Values]:
     """ """
     bytecode: List[Byte] = []
 
     # For variable assigment, similar walk as variable declaration. Difference in operation is
     # handled in the VM.
     if isinstance(expression, expr.Assign):
-        bytecode += evaluate(expression.value, listing)
+        individual_bytecode, vector = evaluate(expression.value, listing, vector)
+        bytecode += individual_bytecode
 
-        for i in range(listing.local_count - 1, -1, -1):
+        for i in range(listing.count - 1, -1, -1):
             local = listing.array[i]
             assert local is not None
+            assert local.name is not None
 
             if expression.name.lexeme == local.name.lexeme:
                 bytecode.append(OpCode.OP_SET)
                 bytecode.append(i)
 
-                return bytecode
+                return bytecode, vector
 
     if isinstance(expression, expr.Binary):
-        bytecode += evaluate(expression.left, listing)
-        bytecode += evaluate(expression.right, listing)
+        individual_bytecode, vector = evaluate(expression.left, listing, vector)
+        bytecode += individual_bytecode
+
+        individual_bytecode, vector = evaluate(expression.right, listing, vector)
+        bytecode += individual_bytecode
 
         operator = operator_mapping[expression.operator.token_type]
         bytecode.append(operator)
 
-        return bytecode
+        return bytecode, vector
 
     elif isinstance(expression, expr.Grouping):
-        return evaluate(expression.expression, listing)
+        individual_bytecode, vector = evaluate(expression.expression, listing, vector)
+        bytecode += individual_bytecode
+
+        return bytecode, vector
 
     elif isinstance(expression, expr.Literal):
-        return [OpCode.OP_CONSTANT, expression.value]
+        vector, location = write(vector, expression.value)
+        bytecode += [OpCode.OP_CONSTANT, location]
+
+        return bytecode, vector
 
     elif isinstance(expression, expr.Unary):
-        bytecode += evaluate(expression.right, listing)
+        individual_bytecode, vector = evaluate(expression.right, listing, vector)
+        bytecode += individual_bytecode
         bytecode.append(OpCode.OP_NEGATE)
 
-        return bytecode
+        return bytecode, vector
 
     # For variable declaration, walk through list of locals currently in scope and find local with
     # the same name as the identifier token. Walking the array backward to ensure last declared
     # variable with the identifier.
     elif isinstance(expression, expr.Variable):
-        for i in range(listing.local_count - 1, -1, -1):
+        for i in range(listing.count - 1, -1, -1):
             local = listing.array[i]
             assert local is not None
+            assert local.name is not None
 
             if expression.name.lexeme == local.name.lexeme:
                 bytecode.append(OpCode.OP_GET)
                 bytecode.append(i)
 
-                return bytecode
+                return bytecode, vector
 
     raise Exception

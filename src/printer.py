@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple
+from typing import List, Optional, Union, Tuple
 
 import compiler
 import expr
@@ -9,13 +9,17 @@ import token_class
 Items = Union[List[token_class.Token], List[statem.Statem], List[compiler.Byte]]
 
 
-def pprint(items: Items, counter: int = 0) -> None:
+def pprint(
+    items: Items, counter: int = 0, values: Optional[compiler.Values] = None
+) -> None:
     """ """
-    for line in convert(items, counter):
+    for line in convert(items, counter, values):
         print(line)
 
 
-def convert(items: Items, counter: int) -> List[str]:
+def convert(
+    items: Items, counter: int, values: Optional[compiler.Values] = None
+) -> List[str]:
     """ """
     result: List[str] = []
 
@@ -65,7 +69,13 @@ def convert(items: Items, counter: int) -> List[str]:
                 compiler.OpCode.OP_GET,
                 compiler.OpCode.OP_SET,
             ]:
-                line += f" {str(items[current])}"
+                location = items[current]
+                assert isinstance(location, int)
+                assert values is not None
+                value = values.array[location].value
+
+                assert isinstance(value, int)
+                line += f" {str(value)}"
                 current += 1
 
             result.append(line)
