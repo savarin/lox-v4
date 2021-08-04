@@ -60,3 +60,18 @@ def test_assignment() -> None:
     assert bytecode[2] == compiler.OpCode.OP_GET
     assert bytecode[3] == 0
     assert bytecode[4] == compiler.OpCode.OP_PRINT
+
+    bytecode = source_to_bytecode(source="let a = 1; a = 2; print a + 3;")
+    assert bytecode[0] == compiler.OpCode.OP_CONSTANT
+    assert bytecode[1] == 1
+    assert bytecode[2] == compiler.OpCode.OP_CONSTANT
+    assert bytecode[3] == 2
+    assert bytecode[4] == compiler.OpCode.OP_SET
+    assert bytecode[5] == 0
+    assert bytecode[6] == compiler.OpCode.OP_POP
+    assert bytecode[7] == compiler.OpCode.OP_GET
+    assert bytecode[8] == 0
+    assert bytecode[9] == compiler.OpCode.OP_CONSTANT
+    assert bytecode[10] == 3
+    assert bytecode[11] == compiler.OpCode.OP_ADD
+    assert bytecode[12] == compiler.OpCode.OP_PRINT

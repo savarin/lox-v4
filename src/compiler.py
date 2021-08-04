@@ -20,6 +20,7 @@ class OpCode(enum.Enum):
     OP_CONSTANT = "OP_CONSTANT"
     OP_POP = "OP_POP"
     OP_GET = "OP_GET"
+    OP_SET = "OP_SET"
     OP_ADD = "OP_ADD"
     OP_SUBTRACT = "OP_SUBTRACT"
     OP_MULTIPLY = "OP_MULTIPLY"
@@ -153,6 +154,21 @@ def evaluate(expression: expr.Expr, listing: Locals) -> List[Byte]:
     """ """
     bytecode: List[Byte] = []
 
+    # For variable assigment, similar walk as variable declaration. Difference in operation is
+    # handled in the VM.
+    if isinstance(expression, expr.Assign):
+        bytecode += evaluate(expression.value, listing)
+
+        for i in range(listing.local_count - 1, -1, -1):
+            local = listing.array[i]
+            assert local is not None
+
+            if expression.name.lexeme == local.name.lexeme:
+                bytecode.append(OpCode.OP_SET)
+                bytecode.append(i)
+
+                return bytecode
+
     if isinstance(expression, expr.Binary):
         bytecode += evaluate(expression.left, listing)
         bytecode += evaluate(expression.right, listing)
@@ -174,6 +190,9 @@ def evaluate(expression: expr.Expr, listing: Locals) -> List[Byte]:
 
         return bytecode
 
+    # For variable declaration, walk through list of locals currently in scope and find local with
+    # the same name as the identifier token. Walking the array backward to ensure last declared
+    # variable with the identifier.
     elif isinstance(expression, expr.Variable):
         for i in range(listing.local_count - 1, -1, -1):
             local = listing.array[i]

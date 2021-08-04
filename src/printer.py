@@ -63,6 +63,7 @@ def convert(items: Items, counter: int) -> List[str]:
             if individual_bytecode in [
                 compiler.OpCode.OP_CONSTANT,
                 compiler.OpCode.OP_GET,
+                compiler.OpCode.OP_SET,
             ]:
                 line += f" {str(items[current])}"
                 current += 1
