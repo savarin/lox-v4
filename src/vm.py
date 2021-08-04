@@ -26,7 +26,7 @@ def init_vm(bytecode: List[compiler.Byte], values: compiler.Values) -> VM:
     return VM(bytecode=bytecode, values=values, stack=[None] * STACK_MAX)
 
 
-def push(emulator: VM, value: int) -> VM:
+def push(emulator: VM, value: Optional[int]) -> VM:
     """ """
     assert emulator.stack is not None
     emulator.stack[emulator.top] = value
@@ -35,14 +35,13 @@ def push(emulator: VM, value: int) -> VM:
     return emulator
 
 
-def pop(emulator: VM) -> Tuple[VM, int]:
+def pop(emulator: VM) -> Tuple[VM, Optional[int]]:
     """ """
     assert emulator.stack is not None
     emulator.top -= 1
 
     value = emulator.stack[emulator.top]
 
-    assert value is not None
     return emulator, value
 
 
@@ -54,12 +53,15 @@ def read_byte(emulator: VM) -> Tuple[VM, compiler.Byte]:
     return emulator, instruction
 
 
-def read_constant(emulator: VM) -> Tuple[VM, int]:
+def read_constant(emulator: VM) -> Tuple[VM, Optional[int]]:
     """ """
-    emulator, offset = read_byte(emulator)
+    emulator, location = read_byte(emulator)
 
-    assert isinstance(offset, int)
-    constant = emulator.values.array[offset].value
+    if location is None:
+        return emulator, None
+
+    assert isinstance(location, int)
+    constant = emulator.values.array[location].value
 
     assert isinstance(constant, int)
     return emulator, constant
@@ -90,11 +92,16 @@ def run(emulator: VM) -> List[Result]:
             emulator = push(emulator, constant)
 
         elif instruction == compiler.OpCode.OP_POP:
-            emulator, individual_result = pop(emulator)
-            result.append(individual_result)
+            emulator, constant = pop(emulator)
+            result.append(constant)
 
         elif instruction == compiler.OpCode.OP_GET:
-            pass
+            emulator, offset = read_byte(emulator)
+
+            assert emulator.stack is not None
+            assert isinstance(offset, int)
+            value = emulator.stack[offset]
+            emulator = push(emulator, value)
 
         elif instruction == compiler.OpCode.OP_SET:
             pass
@@ -113,11 +120,13 @@ def run(emulator: VM) -> List[Result]:
 
         elif instruction == compiler.OpCode.OP_NEGATE:
             emulator, constant = pop(emulator)
+
+            assert constant is not None
             constant = -constant
             emulator = push(emulator, constant)
 
         elif instruction == compiler.OpCode.OP_PRINT:
             emulator, individual_result = pop(emulator)
-            result.append(str(individual_result))
+            result.append(str(individual_result or "nil"))
 
     return result

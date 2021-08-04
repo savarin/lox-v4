@@ -1,10 +1,11 @@
+from typing import Union
 import compiler
 import parser
 import scanner
 import vm
 
 
-def source_to_result(source: str) -> int:
+def source_to_result(source: str) -> Union[int, str]:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
@@ -15,11 +16,16 @@ def source_to_result(source: str) -> int:
     emulator = vm.init_vm(bytecode=bytecode, values=values)
     result = vm.run(emulator)[0]
 
-    assert isinstance(result, int)
+    assert result is not None
     return result
 
 
-def test_run() -> None:
+def test_expression() -> None:
     """ """
     assert source_to_result(source="1 - (2 + 3);") == -4
     assert source_to_result(source="5 * (2 - (3 + 4));") == -25
+
+
+def test_assignment() -> None:
+    """ """
+    assert source_to_result("let a; print a;") == "nil"

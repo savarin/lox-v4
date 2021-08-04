@@ -15,7 +15,7 @@ def source_to_bytecode(source: str) -> Tuple[List[compiler.Byte], compiler.Value
     return compiler.compile(composer)
 
 
-def test_compile() -> None:
+def test_expression() -> None:
     """ """
     bytecode, vector = source_to_bytecode(source="1 - (2 + 3);")
 
