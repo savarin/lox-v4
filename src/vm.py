@@ -102,9 +102,16 @@ def run(emulator: VM) -> List[Result]:
             assert isinstance(offset, int)
             value = emulator.stack[offset]
             emulator = push(emulator, value)
+            result.append(None)
 
         elif instruction == compiler.OpCode.OP_SET:
-            pass
+            emulator, offset = read_byte(emulator)
+
+            assert emulator.stack is not None
+            assert isinstance(offset, int)
+            value = emulator.stack[emulator.top - 1]
+            emulator.stack[offset] = value
+            result.append(None)
 
         elif instruction == compiler.OpCode.OP_ADD:
             emulator = binary_op(emulator, "+")

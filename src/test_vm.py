@@ -1,11 +1,11 @@
-from typing import Union
+from typing import List
 import compiler
 import parser
 import scanner
 import vm
 
 
-def source_to_result(source: str) -> Union[int, str]:
+def source_to_result(source: str) -> List[vm.Result]:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
@@ -14,7 +14,7 @@ def source_to_result(source: str) -> Union[int, str]:
     composer = compiler.init_compiler(statements=statements)
     bytecode, values = compiler.compile(composer)
     emulator = vm.init_vm(bytecode=bytecode, values=values)
-    result = vm.run(emulator)[0]
+    result = vm.run(emulator)
 
     assert result is not None
     return result
@@ -22,10 +22,30 @@ def source_to_result(source: str) -> Union[int, str]:
 
 def test_expression() -> None:
     """ """
-    assert source_to_result(source="1 - (2 + 3);") == -4
-    assert source_to_result(source="5 * (2 - (3 + 4));") == -25
+    result = source_to_result(source="1 - (2 + 3);")
+
+    assert result[0] == -4
+
+    result = source_to_result(source="5 * (2 - (3 + 4));")
+
+    assert result[0] == -25
 
 
 def test_assignment() -> None:
     """ """
-    assert source_to_result("let a; print a;") == "nil"
+    result = source_to_result("let a; print a;")
+
+    assert result[0] is None
+    assert result[1] == "nil"
+
+    result = source_to_result(source="let a = 1; print a;")
+
+    assert result[0] is None
+    assert result[1] == "1"
+
+    result = source_to_result(source="let a = 1; a = 2; print a + 3;")
+
+    assert result[0] is None
+    assert result[1] == 2
+    assert result[2] is None
+    assert result[3] == "5"

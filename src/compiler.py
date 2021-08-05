@@ -81,7 +81,7 @@ def init_values() -> Values:
     return Values(array=array, count=0)
 
 
-def write(vector: Values, constant: int):
+def write(vector: Values, constant: int) -> Tuple[Values, int]:
     """ """
     vector.array[vector.count] = Value(constant)
     vector.count += 1
@@ -188,24 +188,19 @@ def evaluate(
     """ """
     bytecode: List[Byte] = []
 
-    # For variable assigment, similar walk as variable declaration. Difference in operation is
-    # handled in the VM.
     if isinstance(expression, expr.Assign):
         individual_bytecode, vector = evaluate(expression.value, listing, vector)
         bytecode += individual_bytecode
 
-        for i in range(listing.count - 1, -1, -1):
-            local = listing.array[i]
-            assert local is not None
-            assert local.name is not None
+        location = resolve_local(listing, expression.name)
 
-            if expression.name.lexeme == local.name.lexeme:
-                bytecode.append(OpCode.OP_SET)
-                bytecode.append(i)
+        if location is not None:
+            bytecode.append(OpCode.OP_SET)
+            bytecode.append(location)
 
-                return bytecode, vector
+            return bytecode, vector
 
-    if isinstance(expression, expr.Binary):
+    elif isinstance(expression, expr.Binary):
         individual_bytecode, vector = evaluate(expression.left, listing, vector)
         bytecode += individual_bytecode
 
@@ -236,19 +231,27 @@ def evaluate(
 
         return bytecode, vector
 
-    # For variable declaration, walk through list of locals currently in scope and find local with
-    # the same name as the identifier token. Walking the array backward to ensure last declared
-    # variable with the identifier.
     elif isinstance(expression, expr.Variable):
-        for i in range(listing.count - 1, -1, -1):
-            local = listing.array[i]
-            assert local is not None
-            assert local.name is not None
+        location = resolve_local(listing, expression.name)
 
-            if expression.name.lexeme == local.name.lexeme:
-                bytecode.append(OpCode.OP_GET)
-                bytecode.append(i)
+        if location is not None:
+            bytecode.append(OpCode.OP_GET)
+            bytecode.append(location)
 
-                return bytecode, vector
+            return bytecode, vector
 
     raise Exception
+
+
+def resolve_local(
+    listing: Locals, individual_token: token_class.Token
+) -> Optional[int]:
+    """ """
+    for i in range(listing.count - 1, -1, -1):
+        local = listing.array[i]
+        assert local.name is not None
+
+        if individual_token.lexeme == local.name.lexeme:
+            return i
+
+    return None
