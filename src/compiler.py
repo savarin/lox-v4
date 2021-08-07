@@ -11,7 +11,7 @@ import token_type
 Byte = Union["OpCode", int, None]
 
 
-INT_COUNT = 8
+INT_COUNT = 16
 
 
 class OpCode(enum.Enum):
@@ -21,12 +21,18 @@ class OpCode(enum.Enum):
     OP_POP = "OP_POP"
     OP_GET = "OP_GET"
     OP_SET = "OP_SET"
+    OP_EQUAL = "OP_EQUAL"
+    OP_GREATER = "OP_GREATER"
+    OP_LESS = "OP_LESS"
     OP_ADD = "OP_ADD"
     OP_SUBTRACT = "OP_SUBTRACT"
     OP_MULTIPLY = "OP_MULTIPLY"
     OP_DIVIDE = "OP_DIVIDE"
+    OP_NOT = "OP_NOT"
     OP_NEGATE = "OP_NEGATE"
     OP_PRINT = "OP_PRINT"
+    OP_JUMP = "OP_JUMP"
+    OP_JUMP_CONDITIONAL = "OP_JUMP_CONDITIONAL"
 
 
 operator_mapping: Dict[token_type.TokenType, OpCode] = {
@@ -34,6 +40,12 @@ operator_mapping: Dict[token_type.TokenType, OpCode] = {
     token_type.TokenType.MINUS: OpCode.OP_SUBTRACT,
     token_type.TokenType.STAR: OpCode.OP_MULTIPLY,
     token_type.TokenType.SLASH: OpCode.OP_DIVIDE,
+    token_type.TokenType.BANG_EQUAL: OpCode.OP_EQUAL,
+    token_type.TokenType.EQUAL_EQUAL: OpCode.OP_EQUAL,
+    token_type.TokenType.GREATER: OpCode.OP_GREATER,
+    token_type.TokenType.GREATER_EQUAL: OpCode.OP_LESS,
+    token_type.TokenType.LESS: OpCode.OP_LESS,
+    token_type.TokenType.LESS_EQUAL: OpCode.OP_GREATER,
 }
 
 
@@ -130,6 +142,53 @@ def execute(
 
         return bytecode, listing, vector
 
+    elif isinstance(statement, statem.If):
+        individual_bytecode, vector = evaluate(statement.condition, listing, vector)
+        bytecode += individual_bytecode
+
+        # Represents body of first emit_jump. First placeholder for location to jump to if true,
+        # second placeholder if false.
+        bytecode.append(OpCode.OP_JUMP_CONDITIONAL)
+        bytecode.append(0xFF)
+        bytecode.append(0xFF)
+        then_location = len(bytecode) - 2
+
+        # The jump instruction peeks on the stack, pop needed to remove the condition result from
+        # the stack when the condition is true.
+        bytecode.append(OpCode.OP_POP)
+
+        individual_bytecode, listing, vector = execute(
+            statement.then_branch, listing, vector
+        )
+        bytecode += individual_bytecode
+
+        # Represents body of second emit_jump. Placeholder for location to jump to after then branch
+        # execution is complete.
+        bytecode.append(OpCode.OP_JUMP)
+        bytecode.append(0xFF)
+        else_location = len(bytecode) - 1
+
+        # Represents body of first patch_jump. Sets the known location of the start of the then
+        # branch and the start of the else branch in placeholders of first emit_jump.
+        bytecode[then_location] = 2
+        bytecode[then_location + 1] = len(bytecode) - then_location - 1
+
+        # Remove the condition result from the stack when the condition is false and jump to the
+        # start of the else branch takes place.
+        bytecode.append(OpCode.OP_POP)
+
+        if statement.else_branch is not None:
+            individual_bytecode, listing, vector = execute(
+                statement.else_branch, listing, vector
+            )
+            bytecode += individual_bytecode
+
+        # Represents body of second patch_jump. Sets the known location of the end of the else
+        # branch in placeholders of the second emit_jump.
+        bytecode[else_location] = len(bytecode) - else_location
+
+        return bytecode, listing, vector
+
     elif isinstance(statement, statem.Print):
         individual_bytecode, vector = evaluate(statement.expression, listing, vector)
         bytecode += individual_bytecode
@@ -207,8 +266,17 @@ def evaluate(
         individual_bytecode, vector = evaluate(expression.right, listing, vector)
         bytecode += individual_bytecode
 
-        operator = operator_mapping[expression.operator.token_type]
+        individual_type = expression.operator.token_type
+
+        operator = operator_mapping[individual_type]
         bytecode.append(operator)
+
+        if individual_type in [
+            token_type.TokenType.BANG_EQUAL,
+            token_type.TokenType.GREATER_EQUAL,
+            token_type.TokenType.LESS_EQUAL,
+        ]:
+            bytecode.append(OpCode.OP_NOT)
 
         return bytecode, vector
 

@@ -96,7 +96,7 @@ def test_basic_function() -> None:
 def test_recursive_function() -> None:
     """ """
     result = source_to_result(
-        source="fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
+        source="fun count(n) { if (n > 1) count(n - 1); return n; } count(3);"
     )
 
     assert result[0] is None

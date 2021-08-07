@@ -1,11 +1,12 @@
 from typing import List
 import compiler
+import helpers
 import parser
 import scanner
 import vm
 
 
-def source_to_result(source: str) -> List[vm.Result]:
+def source_to_result(source: str) -> List[helpers.Result]:
     """ """
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)

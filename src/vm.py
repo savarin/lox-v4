@@ -1,13 +1,11 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 import dataclasses
 
 import compiler
+import helpers
 
 
-Result = Union[int, str, None]
-
-
-STACK_MAX = 8
+STACK_MAX = 16
 
 
 @dataclasses.dataclass
@@ -45,6 +43,18 @@ def pop(emulator: VM) -> Tuple[VM, Optional[int]]:
     return emulator, value
 
 
+def shift(emulator: VM, position: int) -> Optional[int]:
+    """ """
+    offset = emulator.bytecode[emulator.ip + position]
+    assert isinstance(offset, int)
+
+    # Ensure shift by offset amount not exceed length of bytecode.
+    if emulator.ip + offset >= len(emulator.bytecode):
+        return None
+
+    return offset
+
+
 def read_byte(emulator: VM) -> Tuple[VM, compiler.Byte]:
     """ """
     emulator.ip += 1
@@ -80,9 +90,9 @@ def is_at_end(emulator: VM) -> bool:
     return emulator.ip == len(emulator.bytecode)
 
 
-def run(emulator: VM) -> List[Result]:
+def run(emulator: VM) -> List[helpers.Result]:
     """ """
-    result: List[Result] = []
+    result: List[helpers.Result] = []
 
     while not is_at_end(emulator):
         emulator, instruction = read_byte(emulator)
@@ -96,22 +106,34 @@ def run(emulator: VM) -> List[Result]:
             result.append(constant)
 
         elif instruction == compiler.OpCode.OP_GET:
-            emulator, offset = read_byte(emulator)
+            emulator, location = read_byte(emulator)
 
             assert emulator.stack is not None
-            assert isinstance(offset, int)
-            value = emulator.stack[offset]
+            assert isinstance(location, int)
+            value = emulator.stack[location]
             emulator = push(emulator, value)
             result.append(None)
 
         elif instruction == compiler.OpCode.OP_SET:
-            emulator, offset = read_byte(emulator)
+            emulator, location = read_byte(emulator)
 
             assert emulator.stack is not None
-            assert isinstance(offset, int)
+            assert isinstance(location, int)
             value = emulator.stack[emulator.top - 1]
-            emulator.stack[offset] = value
+            emulator.stack[location] = value
             result.append(None)
+
+        elif instruction == compiler.OpCode.OP_EQUAL:
+            emulator, b = pop(emulator)
+            emulator, a = pop(emulator)
+
+            emulator = push(emulator, helpers.is_equal(a, b))
+
+        elif instruction == compiler.OpCode.OP_GREATER:
+            emulator = binary_op(emulator, ">")
+
+        elif instruction == compiler.OpCode.OP_LESS:
+            emulator = binary_op(emulator, "<")
 
         elif instruction == compiler.OpCode.OP_ADD:
             emulator = binary_op(emulator, "+")
@@ -125,15 +147,43 @@ def run(emulator: VM) -> List[Result]:
         elif instruction == compiler.OpCode.OP_DIVIDE:
             emulator = binary_op(emulator, "//")
 
+        elif instruction == compiler.OpCode.OP_NOT:
+            emulator, constant = pop(emulator)
+            emulator = push(emulator, not helpers.is_truthy(constant))
+
         elif instruction == compiler.OpCode.OP_NEGATE:
             emulator, constant = pop(emulator)
 
             assert constant is not None
             constant = -constant
-            emulator = push(emulator, constant)
+            emulator = push(emulator, -constant)
 
         elif instruction == compiler.OpCode.OP_PRINT:
             emulator, individual_result = pop(emulator)
-            result.append(str(individual_result or "nil"))
+            result.append(
+                str(individual_result if individual_result is not None else "nil")
+            )
+
+        elif instruction == compiler.OpCode.OP_JUMP:
+            offset = shift(emulator, 0)
+
+            if offset is None:
+                break
+
+            emulator.ip += offset
+
+        elif instruction == compiler.OpCode.OP_JUMP_CONDITIONAL:
+            assert emulator.stack is not None
+            condition = emulator.stack[emulator.top - 1]
+
+            if helpers.is_truthy(condition):
+                offset = shift(emulator, 0)
+            else:
+                offset = shift(emulator, 1)
+
+            if offset is None:
+                break
+
+            emulator.ip += offset
 
     return result

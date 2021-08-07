@@ -60,6 +60,7 @@ def convert(
                 break
 
             individual_bytecode = items[current]
+
             assert isinstance(individual_bytecode, compiler.OpCode)
             line = indent(f"OpCode.{individual_bytecode._name_}", counter)
             current += 1
@@ -70,13 +71,24 @@ def convert(
                 compiler.OpCode.OP_SET,
             ]:
                 location = items[current]
-                assert isinstance(location, int)
-                assert values is not None
-                value = values.array[location].value
+                value = None
 
-                assert isinstance(value, int)
+                if location is not None:
+                    assert isinstance(location, int)
+                    assert values is not None
+                    value = values.array[location].value
+
+                assert isinstance(value, int) or value is None
                 line += f" {str(value)}"
                 current += 1
+
+            elif individual_bytecode == compiler.OpCode.OP_JUMP:
+                line += f" {items[current]}"
+                current += 1
+
+            elif individual_bytecode == compiler.OpCode.OP_JUMP_CONDITIONAL:
+                line += f" {items[current]} {items[current + 1]}"
+                current += 2
 
             result.append(line)
 

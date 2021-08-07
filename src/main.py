@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import compiler
 import environment
@@ -29,13 +29,15 @@ def parse(tokens: List[token_class.Token]) -> List[statem.Statem]:
     return statements
 
 
-def compile(statements: List[statem.Statem]) -> List[compiler.Byte]:
+def compile(
+    statements: List[statem.Statem],
+) -> Tuple[List[compiler.Byte], compiler.Values]:
     """ """
     composer = compiler.init_compiler(statements=statements)
     bytecode, values = compiler.compile(composer)
 
     printer.pprint(bytecode, counter=1, values=values)
-    return bytecode
+    return bytecode, values
 
 
 def run(
@@ -75,9 +77,14 @@ if __name__ == "__main__":
         statements = parse(tokens)
 
         print("\n<compiler>")
-        bytecode = compile(statements)
+        bytecode, values = None, None
+
+        # try:
+        bytecode, values = compile(statements)
+        # except Exception:
+        #     print("\033[91m    Error: No existing implementation.\033[0m")
 
         print("\n<output>")
-        ecosystem = run(statements, None, None, ecosystem)
+        ecosystem = run(statements, bytecode, values, ecosystem)
 
         print("")
