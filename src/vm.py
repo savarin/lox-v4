@@ -14,14 +14,14 @@ class VM:
 
     bytecode: List[compiler.Byte]
     values: compiler.Values
-    ip: int = 0
-    stack: Optional[List[Optional[int]]] = None
-    top: int = 0
+    ip: int
+    stack: Optional[List[Optional[int]]]
+    top: int
 
 
 def init_vm(bytecode: List[compiler.Byte], values: compiler.Values) -> VM:
     """ """
-    return VM(bytecode=bytecode, values=values, stack=[None] * STACK_MAX)
+    return VM(bytecode=bytecode, values=values, ip=0, stack=[None] * STACK_MAX, top=0)
 
 
 def push(emulator: VM, value: Optional[int]) -> VM:

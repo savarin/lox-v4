@@ -14,6 +14,13 @@ Byte = Union["OpCode", int, None]
 INT_COUNT = 16
 
 
+class FunctionType(enum.Enum):
+    """ """
+
+    TYPE_FUNCTION = "TYPE_FUNCTION"
+    TYPE_SCRIPT = "TYPE_SCRIPT"
+
+
 class OpCode(enum.Enum):
     """ """
 
@@ -50,6 +57,21 @@ operator_mapping: Dict[token_type.TokenType, OpCode] = {
 
 
 @dataclasses.dataclass
+class Function:
+    """ """
+
+    function_type: FunctionType
+    bytecode: List[Byte]
+    name: Optional[str]
+
+
+def init_function(function_type: FunctionType, name: Optional[str] = None) -> Function:
+    """ """
+    bytecode: List[Byte] = []
+    return Function(function_type=function_type, bytecode=bytecode, name=name)
+
+
+@dataclasses.dataclass
 class Local:
     """ """
 
@@ -76,7 +98,7 @@ def init_locals() -> Locals:
 class Value:
     """ """
 
-    value: Optional[int]
+    value: Union[int, Function, None]
 
 
 @dataclasses.dataclass
@@ -93,7 +115,7 @@ def init_values() -> Values:
     return Values(array=array, count=0)
 
 
-def write(vector: Values, constant: int) -> Tuple[Values, int]:
+def write(vector: Values, constant: Union[int, Function]) -> Tuple[Values, int]:
     """ """
     vector.array[vector.count] = Value(constant)
     vector.count += 1
@@ -105,218 +127,259 @@ def write(vector: Values, constant: int) -> Tuple[Values, int]:
 class Compiler:
     """ """
 
-    statements: List[statem.Statem]
+    enclosing: Optional["Compiler"]
+    statements: Optional[List[statem.Statem]]
+    function: Function
+    listing: Locals
 
 
-def init_compiler(statements: List[statem.Statem]) -> Compiler:
+def init_compiler(
+    composer: Optional["Compiler"] = None,
+    statements: Optional[List[statem.Statem]] = None,
+    function_type: Optional[FunctionType] = None,
+    name: Optional[str] = None,
+) -> Compiler:
     """ """
-    return Compiler(statements=statements)
+    if function_type is None:
+        function_type = FunctionType.TYPE_SCRIPT
+
+    individual_token = token_class.Token(token_type.TokenType.NIL, None, 0, 0)
+
+    listing = init_locals()
+    listing.array[listing.count] = Local(individual_token, 0)
+    listing.count += 1
+
+    return Compiler(
+        enclosing=composer,
+        statements=statements,
+        function=init_function(function_type=function_type, name=name),
+        listing=listing,
+    )
 
 
 def compile(composer: Compiler) -> Tuple[List[Byte], Values]:
     """ """
-    bytecode: List[Byte] = []
-    listing = init_locals()
     vector = init_values()
+    assert composer.statements is not None
 
     for statement in composer.statements:
-        individual_bytecode, listing, vector = execute(statement, listing, vector)
-        bytecode += individual_bytecode
+        composer, vector = execute(composer, vector, statement)
 
-    return bytecode, vector
+    return composer.function.bytecode, vector
 
 
 def execute(
-    statement: statem.Statem, listing: Locals, vector: Values
-) -> Tuple[List[Byte], Locals, Values]:
+    composer: Compiler, vector: Values, statement: statem.Statem
+) -> Tuple[Compiler, Values]:
     """ """
-    bytecode: List[Byte] = []
-
     if isinstance(statement, statem.Block):
-        return execute_block(statement.statements, listing, vector)
+        return execute_block(composer, vector, statement.statements)
 
     elif isinstance(statement, statem.Expression):
-        individual_bytecode, vector = evaluate(statement.expression, listing, vector)
-        bytecode += individual_bytecode
-        bytecode.append(OpCode.OP_POP)
+        composer, vector = evaluate(composer, vector, statement.expression)
+        composer.function.bytecode.append(OpCode.OP_POP)
 
-        return bytecode, listing, vector
+        return composer, vector
+
+    elif isinstance(statement, statem.Function):
+        # Encapsulate existing compiler as attribute enclosing of new compiler, representing new
+        # function environment.
+        composer = init_compiler(
+            composer=composer,
+            function_type=FunctionType.TYPE_FUNCTION,
+            name=statement.name.lexeme,
+        )
+
+        # Initialize arguments in function scope.
+        composer.listing.scope_depth += 1
+
+        for i, parameter in enumerate(statement.parameters):
+            composer.listing.array[composer.listing.count] = Local(
+                parameter, composer.listing.scope_depth
+            )
+            composer.listing.count += 1
+
+        composer.listing.scope_depth -= 1
+
+        # Execute function body with arguments in function scope.
+        composer, vector = execute_block(composer, vector, statement.body)
+
+        # Exit back to existing compiler.
+        constant = composer.function
+        enclosing = composer.enclosing
+
+        # Store function in values.
+        vector, location = write(vector, constant)
+
+        assert enclosing is not None
+        enclosing.function.bytecode += [OpCode.OP_CONSTANT, location]
+
+        return enclosing, vector
 
     elif isinstance(statement, statem.If):
-        individual_bytecode, vector = evaluate(statement.condition, listing, vector)
-        bytecode += individual_bytecode
+        composer, vector = evaluate(composer, vector, statement.condition)
 
         # Represents body of first emit_jump. First placeholder for location to jump to if true,
         # second placeholder if false.
-        bytecode.append(OpCode.OP_JUMP_CONDITIONAL)
-        bytecode.append(0xFF)
-        bytecode.append(0xFF)
-        then_location = len(bytecode) - 2
+        composer.function.bytecode.append(OpCode.OP_JUMP_CONDITIONAL)
+        composer.function.bytecode.append(0xFF)
+        composer.function.bytecode.append(0xFF)
+        then_location = len(composer.function.bytecode) - 2
 
         # The jump instruction peeks on the stack, pop needed to remove the condition result from
         # the stack when the condition is true.
-        bytecode.append(OpCode.OP_POP)
+        composer.function.bytecode.append(OpCode.OP_POP)
 
-        individual_bytecode, listing, vector = execute(
-            statement.then_branch, listing, vector
-        )
-        bytecode += individual_bytecode
+        composer, vector = execute(composer, vector, statement.then_branch)
 
         # Represents body of second emit_jump. Placeholder for location to jump to after then branch
         # execution is complete.
-        bytecode.append(OpCode.OP_JUMP)
-        bytecode.append(0xFF)
-        else_location = len(bytecode) - 1
+        composer.function.bytecode.append(OpCode.OP_JUMP)
+        composer.function.bytecode.append(0xFF)
+        else_location = len(composer.function.bytecode) - 1
 
         # Represents body of first patch_jump. Sets the known location of the start of the then
         # branch and the start of the else branch in placeholders of first emit_jump.
-        bytecode[then_location] = 2
-        bytecode[then_location + 1] = len(bytecode) - then_location - 1
+        composer.function.bytecode[then_location] = 2
+        composer.function.bytecode[then_location + 1] = (
+            len(composer.function.bytecode) - then_location - 1
+        )
 
         # Remove the condition result from the stack when the condition is false and jump to the
         # start of the else branch takes place.
-        bytecode.append(OpCode.OP_POP)
+        composer.function.bytecode.append(OpCode.OP_POP)
 
         if statement.else_branch is not None:
-            individual_bytecode, listing, vector = execute(
-                statement.else_branch, listing, vector
-            )
-            bytecode += individual_bytecode
+            composer, vector = execute(composer, vector, statement.else_branch)
 
         # Represents body of second patch_jump. Sets the known location of the end of the else
         # branch in placeholders of the second emit_jump.
-        bytecode[else_location] = len(bytecode) - else_location
+        composer.function.bytecode[else_location] = (
+            len(composer.function.bytecode) - else_location
+        )
 
-        return bytecode, listing, vector
+        return composer, vector
 
     elif isinstance(statement, statem.Print):
-        individual_bytecode, vector = evaluate(statement.expression, listing, vector)
-        bytecode += individual_bytecode
-        bytecode.append(OpCode.OP_PRINT)
+        composer, vector = evaluate(composer, vector, statement.expression)
+        composer.function.bytecode.append(OpCode.OP_PRINT)
 
-        return bytecode, listing, vector
+        return composer, vector
 
     elif isinstance(statement, statem.Var):
-        value: List[Byte] = [OpCode.OP_CONSTANT, None]
-
         if statement.initializer is not None:
-            value, vector = evaluate(statement.initializer, listing, vector)
+            composer, vector = evaluate(composer, vector, statement.initializer)
+        else:
+            composer.function.bytecode += [OpCode.OP_CONSTANT, None]
 
-        bytecode += value
+        composer = add_local(composer, statement.name)
 
-        listing.array[listing.count] = Local(statement.name, listing.scope_depth)
-        listing.count += 1
-
-        return bytecode, listing, vector
+        return composer, vector
 
     raise Exception
 
 
 def execute_block(
-    statements: List[statem.Statem], listing: Locals, vector: Values
-) -> Tuple[List[Byte], Locals, Values]:
+    composer: Compiler, vector: Values, statements: List[statem.Statem]
+) -> Tuple[Compiler, Values]:
     """ """
-    bytecode: List[Byte] = []
-
     # Increase scope depth when entering block.
-    listing.scope_depth += 1
+    composer.listing.scope_depth += 1
 
     for statement in statements:
-        individual_bytecode, listing, vector = execute(statement, listing, vector)
-        bytecode += individual_bytecode
+        composer, vector = execute(composer, vector, statement)
 
     # Decrease scope depth when exiting block and remove out of scope variables.
-    listing.scope_depth -= 1
+    composer.listing.scope_depth -= 1
 
     while True:
-        local = listing.array[listing.count - 1]
+        local = composer.listing.array[composer.listing.count - 1]
         assert local is not None
 
-        if listing.count == 0 or local.depth <= listing.scope_depth:
+        if composer.listing.count == 0 or local.depth <= composer.listing.scope_depth:
             break
 
-        bytecode.append(OpCode.OP_POP)
-        listing.count -= 1
+        composer.function.bytecode.append(OpCode.OP_POP)
+        composer.listing.count -= 1
 
-    return bytecode, listing, vector
+    return composer, vector
 
 
 def evaluate(
-    expression: expr.Expr, listing: Locals, vector: Values
-) -> Tuple[List[Byte], Values]:
+    composer: Compiler, vector: Values, expression: expr.Expr
+) -> Tuple[Compiler, Values]:
     """ """
-    bytecode: List[Byte] = []
-
     if isinstance(expression, expr.Assign):
-        individual_bytecode, vector = evaluate(expression.value, listing, vector)
-        bytecode += individual_bytecode
-
-        location = resolve_local(listing, expression.name)
+        composer, vector = evaluate(composer, vector, expression.value)
+        location = resolve_local(composer, expression.name)
 
         if location is not None:
-            bytecode.append(OpCode.OP_SET)
-            bytecode.append(location)
+            composer.function.bytecode.append(OpCode.OP_SET)
+            composer.function.bytecode.append(location)
 
-            return bytecode, vector
+            return composer, vector
 
     elif isinstance(expression, expr.Binary):
-        individual_bytecode, vector = evaluate(expression.left, listing, vector)
-        bytecode += individual_bytecode
-
-        individual_bytecode, vector = evaluate(expression.right, listing, vector)
-        bytecode += individual_bytecode
+        composer, vector = evaluate(composer, vector, expression.left)
+        composer, vector = evaluate(composer, vector, expression.right)
 
         individual_type = expression.operator.token_type
 
         operator = operator_mapping[individual_type]
-        bytecode.append(operator)
+        composer.function.bytecode.append(operator)
 
         if individual_type in [
             token_type.TokenType.BANG_EQUAL,
             token_type.TokenType.GREATER_EQUAL,
             token_type.TokenType.LESS_EQUAL,
         ]:
-            bytecode.append(OpCode.OP_NOT)
+            composer.function.bytecode.append(OpCode.OP_NOT)
 
-        return bytecode, vector
+        return composer, vector
 
     elif isinstance(expression, expr.Grouping):
-        individual_bytecode, vector = evaluate(expression.expression, listing, vector)
-        bytecode += individual_bytecode
-
-        return bytecode, vector
+        return evaluate(composer, vector, expression.expression)
 
     elif isinstance(expression, expr.Literal):
         vector, location = write(vector, expression.value)
-        bytecode += [OpCode.OP_CONSTANT, location]
+        composer.function.bytecode += [OpCode.OP_CONSTANT, location]
 
-        return bytecode, vector
+        return composer, vector
 
     elif isinstance(expression, expr.Unary):
-        individual_bytecode, vector = evaluate(expression.right, listing, vector)
-        bytecode += individual_bytecode
-        bytecode.append(OpCode.OP_NEGATE)
+        composer, vector = evaluate(composer, vector, expression.right)
+        composer.function.bytecode.append(OpCode.OP_NEGATE)
 
-        return bytecode, vector
+        return composer, vector
 
     elif isinstance(expression, expr.Variable):
-        location = resolve_local(listing, expression.name)
+        location = resolve_local(composer, expression.name)
 
         if location is not None:
-            bytecode.append(OpCode.OP_GET)
-            bytecode.append(location)
+            composer.function.bytecode.append(OpCode.OP_GET)
+            composer.function.bytecode.append(location)
 
-            return bytecode, vector
+            return composer, vector
 
     raise Exception
 
 
+def add_local(composer: Compiler, individual_token: token_class.Token) -> Compiler:
+    """ """
+    composer.listing.array[composer.listing.count] = Local(
+        individual_token, composer.listing.scope_depth
+    )
+    composer.listing.count += 1
+
+    return composer
+
+
 def resolve_local(
-    listing: Locals, individual_token: token_class.Token
+    composer: Compiler, individual_token: token_class.Token
 ) -> Optional[int]:
     """ """
-    for i in range(listing.count - 1, -1, -1):
-        local = listing.array[i]
+    for i in range(composer.listing.count - 1, -1, -1):
+        local = composer.listing.array[i]
         assert local.name is not None
 
         if individual_token.lexeme == local.name.lexeme:

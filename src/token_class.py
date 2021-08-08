@@ -9,7 +9,7 @@ class Token:
     """ """
 
     token_type: token_type.TokenType
-    lexeme: str
+    lexeme: Optional[str]
     literal: Optional[int]
     line: int
 

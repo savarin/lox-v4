@@ -20,7 +20,7 @@ class Scanner:
     """ """
 
     source: str
-    tokens: Optional[List[token_class.Token]] = None
+    tokens: Optional[List[token_class.Token]]
     start: int = 0
     current: int = 0
     line: int = 1
@@ -36,7 +36,7 @@ def scan(searcher: Scanner) -> List[token_class.Token]:
     """ """
     while not is_at_end(searcher):
         searcher.start = searcher.current
-        scan_token(searcher)
+        searcher = scan_token(searcher)
 
     assert searcher.tokens is not None
     searcher.tokens.append(

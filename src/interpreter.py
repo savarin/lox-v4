@@ -55,6 +55,7 @@ def execute(
         return execute_block(inspector, statement.statements, ecosystem)
 
     elif isinstance(statement, statem.Function):
+        assert statement.name.lexeme is not None
         inspector.ecosystem = environment.define(
             inspector.ecosystem, statement.name.lexeme, statement
         )
@@ -106,6 +107,7 @@ def execute(
             or isinstance(value, statem.Function)
             or value is None
         )
+        assert statement.name.lexeme is not None
         inspector.ecosystem = environment.define(
             inspector.ecosystem, statement.name.lexeme, value
         )
@@ -238,6 +240,7 @@ def call(
     ecosystem = environment.init_environment(inspector.ecosystem)
 
     for i, parameter in enumerate(function.parameters):
+        assert parameter.lexeme
         ecosystem = environment.define(ecosystem, parameter.lexeme, arguments[i])
 
     try:

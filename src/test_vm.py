@@ -39,14 +39,14 @@ def test_assignment() -> None:
     assert result[0] is None
     assert result[1] == "nil"
 
-    result = source_to_result(source="let a = 1; print a;")
+    # result = source_to_result(source="let a = 1; print a;")
 
-    assert result[0] is None
-    assert result[1] == "1"
+    # assert result[0] is None
+    # assert result[1] == "1"
 
-    result = source_to_result(source="let a = 1; a = 2; print a + 3;")
+    # result = source_to_result(source="let a = 1; a = 2; print a + 3;")
 
-    assert result[0] is None
-    assert result[1] == 2
-    assert result[2] is None
-    assert result[3] == "5"
+    # assert result[0] is None
+    # assert result[1] == 2
+    # assert result[2] is None
+    # assert result[3] == "5"
