@@ -65,12 +65,19 @@ class Function:
     function_type: FunctionType
     bytecode: List[Byte]
     name: Optional[str]
+    values: Optional["Values"]
 
 
-def init_function(function_type: FunctionType, name: Optional[str] = None) -> Function:
+def init_function(
+    function_type: FunctionType,
+    name: Optional[str] = None,
+    values: Optional["Values"] = None,
+) -> Function:
     """ """
     bytecode: List[Byte] = []
-    return Function(function_type=function_type, bytecode=bytecode, name=name)
+    return Function(
+        function_type=function_type, bytecode=bytecode, name=name, values=values
+    )
 
 
 @dataclasses.dataclass
@@ -159,7 +166,7 @@ def init_compiler(
     )
 
 
-def compile(composer: Compiler) -> Tuple[List[Byte], Values]:
+def compile(composer: Compiler) -> Function:
     """ """
     vector = init_values()
     assert composer.statements is not None
@@ -167,7 +174,9 @@ def compile(composer: Compiler) -> Tuple[List[Byte], Values]:
     for statement in composer.statements:
         composer, vector = execute(composer, vector, statement)
 
-    return composer.function.bytecode, vector
+    composer.function.values = vector
+
+    return composer.function
 
 
 def execute(

@@ -103,7 +103,7 @@ def test_recursive_function() -> None:
     assert result[1] == 3
 
     result = source_to_result(
-        source="fun fib(n) { if (n <= 1) return n; return fib(n - 2) + fib(n - 1); } fib(8);"
+        source="fun fib(n) { if (n == 1) return 1; if (n == 2) return 1; return fib(n - 2) + fib(n - 1); } fib(8);"
     )
 
     assert result[0] is None

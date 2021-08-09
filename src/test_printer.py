@@ -28,7 +28,9 @@ def execute(source: str, convert_to_bytecode: bool = False) -> ResultTuple:
 
     if convert_to_bytecode:
         composer = compiler.init_compiler(statements=statements)
-        bytecode, values = compiler.compile(composer)
+        function = compiler.compile(composer)
+
+        bytecode, values = function.bytecode, function.values
 
     return tokens, statements, bytecode, values
 
