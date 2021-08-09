@@ -33,7 +33,7 @@ def execute(source: str, convert_to_bytecode: bool = False) -> ResultTuple:
     return tokens, statements, bytecode, values
 
 
-def test_expression():
+def test_expression() -> None:
     """ """
     source = "1 - (2 + 3);"
     tokens, statements, bytecode, values = execute(source, convert_to_bytecode=True)
@@ -64,6 +64,7 @@ Expression
                 Literal(3)"""
     )
 
+    assert bytecode is not None
     assert (
         "\n".join(printer.convert(bytecode, counter=0, values=values))
         == """\
@@ -111,6 +112,7 @@ Expression
                         Literal(4)"""
     )
 
+    assert bytecode is not None
     assert (
         "\n".join(printer.convert(bytecode, counter=0, values=values))
         == """\
@@ -344,7 +346,7 @@ Print
     )
 
 
-def test_basic_function():
+def test_basic_function() -> None:
     """ """
     source = "fun add(a, b) { print a + b; } add(1, 2);"
     tokens, statements, bytecode, values = execute(source)
@@ -392,7 +394,7 @@ Expression
     )
 
 
-def test_recursive_function():
+def test_recursive_function() -> None:
     """ """
     source = "fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
     tokens, statements, bytecode, values = execute(source)

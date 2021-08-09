@@ -240,7 +240,7 @@ def call(
     ecosystem = environment.init_environment(inspector.ecosystem)
 
     for i, parameter in enumerate(function.parameters):
-        assert parameter.lexeme
+        assert parameter.lexeme is not None
         ecosystem = environment.define(ecosystem, parameter.lexeme, arguments[i])
 
     try:

@@ -40,6 +40,8 @@ class OpCode(enum.Enum):
     OP_PRINT = "OP_PRINT"
     OP_JUMP = "OP_JUMP"
     OP_JUMP_CONDITIONAL = "OP_JUMP_CONDITIONAL"
+    OP_CALL = "OP_CALL"
+    OP_RETURN = "OP_RETURN"
 
 
 operator_mapping: Dict[token_type.TokenType, OpCode] = {
@@ -266,6 +268,14 @@ def execute(
 
         return composer, vector
 
+    elif isinstance(statement, statem.Return):
+        if statement.value is not None:
+            composer, vector = evaluate(composer, vector, statement.value)
+
+        composer.function.bytecode.append(OpCode.OP_RETURN)
+
+        return composer, vector
+
     elif isinstance(statement, statem.Var):
         if statement.initializer is not None:
             composer, vector = evaluate(composer, vector, statement.initializer)
@@ -334,6 +344,17 @@ def evaluate(
             token_type.TokenType.LESS_EQUAL,
         ]:
             composer.function.bytecode.append(OpCode.OP_NOT)
+
+        return composer, vector
+
+    elif isinstance(expression, expr.Call):
+        arg_count = 0
+
+        for argument in expression.arguments:
+            composer, vector = evaluate(composer, vector, argument)
+            arg_count += 1
+
+        composer.function.bytecode += [OpCode.OP_CALL, arg_count]
 
         return composer, vector
 
