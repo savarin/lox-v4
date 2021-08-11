@@ -12,8 +12,8 @@ Value = Union[int, statem.Function, None]
 class Environment:
     """ """
 
-    enclosing: Optional["Environment"] = None
-    values: Optional[Dict[str, Value]] = None
+    enclosing: Optional["Environment"]
+    values: Optional[Dict[str, Value]]
 
 
 def init_environment(enclosing: Optional["Environment"] = None) -> Environment:

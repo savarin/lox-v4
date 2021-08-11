@@ -2,112 +2,285 @@ from typing import List, Optional, Tuple, Union
 import dataclasses
 
 import compiler
+import helpers
 
 
-Result = Union[int, str, None]
-
-
+FRAMES_MAX = 8
 STACK_MAX = 8
+
+
+@dataclasses.dataclass
+class CallFrame:
+    """ """
+
+    function: Optional[compiler.Function]
+    ip: int
+    slots: Optional[List[Union[int, compiler.Function, None]]]
+    slots_top: int
 
 
 @dataclasses.dataclass
 class VM:
     """ """
 
-    bytecode: List[compiler.ByteCode]
-    ip: int = 0
-    stack: Optional[List[Optional[int]]] = None
-    top: int = 0
+    frames: List[CallFrame]
+    frame_count: int
+    stack: List[Union[int, compiler.Function, None]]
+    stack_top: int
 
 
-def init_vm(bytecode: List[compiler.ByteCode]) -> VM:
+def init_vm(function: compiler.Function) -> VM:
     """ """
-    return VM(bytecode=bytecode, stack=[None] * STACK_MAX)
+    frames = [CallFrame(None, 0, None, 0) for _ in range(FRAMES_MAX)]
+
+    stack: List[Union[int, compiler.Function, None]] = [None] * STACK_MAX
+    stack[0] = function
+
+    return VM(frames=frames, frame_count=0, stack=stack, stack_top=1)
 
 
-def push(emulator: VM, value: int) -> VM:
+def call(
+    emulator: VM,
+    frame: Optional[CallFrame],
+    function: compiler.Function,
+    arg_count: int,
+) -> Tuple[VM, Optional[CallFrame], bool]:
     """ """
-    assert emulator.stack is not None
-    emulator.stack[emulator.top] = value
-    emulator.top += 1
+    if emulator.frame_count > STACK_MAX:
+        return emulator, frame, False
 
-    return emulator
+    if frame is None:
+        slots: List[Union[int, compiler.Function, None]] = [None] * STACK_MAX
+    else:
+        assert frame.slots is not None
+        slots = frame.slots[frame.slots_top - arg_count - 1 :]
+
+    frame = CallFrame(function=function, ip=0, slots=slots, slots_top=arg_count + 1)
+
+    emulator.frames[emulator.frame_count] = frame
+    emulator.frame_count += 1
+
+    return emulator, frame, True
 
 
-def pop(emulator: VM) -> Tuple[VM, int]:
+def push(frame: CallFrame, value: Union[int, compiler.Function, None]) -> CallFrame:
     """ """
-    assert emulator.stack is not None
-    emulator.top -= 1
+    assert frame.slots is not None
+    frame.slots[frame.slots_top] = value
+    frame.slots_top += 1
 
-    value = emulator.stack[emulator.top]
-
-    assert value is not None
-    return emulator, value
+    return frame
 
 
-def read_byte(emulator: VM) -> Tuple[VM, compiler.ByteCode]:
+def pop(frame: CallFrame) -> Tuple[CallFrame, Union[int, compiler.Function, None]]:
     """ """
-    emulator.ip += 1
-    instruction = emulator.bytecode[emulator.ip - 1]
+    frame.slots_top -= 1
 
-    return emulator, instruction
+    assert frame.slots is not None
+    value = frame.slots[frame.slots_top]
+
+    return frame, value
 
 
-def read_constant(emulator: VM) -> Tuple[VM, int]:
+def shift(frame: CallFrame, position: int) -> Optional[int]:
     """ """
-    emulator, constant = read_byte(emulator)
+    assert frame.function is not None
+    offset = frame.function.bytecode[frame.ip + position]
 
-    assert isinstance(constant, int)
-    return emulator, constant
+    assert isinstance(offset, int)
+
+    # Ensure shift by offset amount not exceed length of bytecode.
+    if frame.ip + offset >= len(frame.function.bytecode):
+        return None
+
+    return offset
 
 
-def binary_op(emulator: VM, op: str) -> VM:
+def read_byte(frame: CallFrame) -> Tuple[CallFrame, compiler.Byte]:
     """ """
-    emulator, b = pop(emulator)
-    emulator, a = pop(emulator)
+    frame.ip += 1
 
-    return push(emulator, eval(f"a {op} b"))
+    assert frame.function is not None
+    instruction = frame.function.bytecode[frame.ip - 1]
+
+    return frame, instruction
 
 
-def is_at_end(emulator: VM) -> bool:
+def read_constant(
+    frame: CallFrame,
+) -> Tuple[CallFrame, Union[int, compiler.Function, None]]:
     """ """
-    return emulator.ip == len(emulator.bytecode)
+    frame, location = read_byte(frame)
+
+    if location is None:
+        return frame, None
+
+    assert frame.function is not None
+    assert frame.function.values is not None
+    assert isinstance(location, int)
+    constant = frame.function.values.array[location].value
+
+    return frame, constant
 
 
-def run(emulator: VM) -> List[Result]:
+def binary_op(frame: CallFrame, op: str) -> CallFrame:
     """ """
-    result: List[Result] = []
+    frame, b = pop(frame)
+    frame, a = pop(frame)
 
-    while not is_at_end(emulator):
-        emulator, instruction = read_byte(emulator)
+    return push(frame, eval(f"a {op} b"))
+
+
+def is_at_end(frame: CallFrame) -> bool:
+    """ """
+    assert frame.function is not None
+    return frame.ip >= len(frame.function.bytecode)
+
+
+def run(emulator: VM) -> List[helpers.Result]:
+    """ """
+    result: List[helpers.Result] = []
+
+    function = emulator.stack[emulator.stack_top - 1]
+
+    assert isinstance(function, compiler.Function)
+    emulator, frame, is_valid = call(emulator, None, function, 0)
+
+    if not is_valid:
+        return result
+
+    while True:
+        assert frame is not None
+
+        if is_at_end(frame):
+            break
+
+        frame, instruction = read_byte(frame)
 
         if instruction == compiler.OpCode.OP_CONSTANT:
-            emulator, constant = read_constant(emulator)
-            emulator = push(emulator, constant)
+            frame, constant_value = read_constant(frame)
+            frame = push(frame, constant_value)
 
-        if instruction == compiler.OpCode.OP_POP:
-            emulator, individual_result = pop(emulator)
-            result.append(individual_result)
+        elif instruction == compiler.OpCode.OP_POP:
+            frame, pop_value = pop(frame)
+
+            assert isinstance(pop_value, int)
+            result.append(pop_value)
+
+        elif instruction == compiler.OpCode.OP_GET:
+            frame, get_value = read_byte(frame)
+
+            assert frame.slots is not None
+            assert isinstance(get_value, int)
+            value = frame.slots[get_value]
+
+            frame = push(frame, value)
+            result.append(None)
+
+        elif instruction == compiler.OpCode.OP_SET:
+            frame, set_value = read_byte(frame)
+
+            assert frame.slots is not None
+            value = frame.slots[frame.slots_top - 1]
+
+            assert isinstance(set_value, int)
+            frame.slots[set_value] = value
+            result.append(None)
+
+        elif instruction == compiler.OpCode.OP_EQUAL:
+            frame, b = pop(frame)
+            frame, a = pop(frame)
+
+            assert isinstance(a, int) and isinstance(b, int)
+            frame = push(frame, helpers.is_equal(a, b))
+
+        elif instruction == compiler.OpCode.OP_GREATER:
+            frame = binary_op(frame, ">")
+
+        elif instruction == compiler.OpCode.OP_LESS:
+            frame = binary_op(frame, "<")
 
         elif instruction == compiler.OpCode.OP_ADD:
-            emulator = binary_op(emulator, "+")
+            frame = binary_op(frame, "+")
 
         elif instruction == compiler.OpCode.OP_SUBTRACT:
-            emulator = binary_op(emulator, "-")
+            frame = binary_op(frame, "-")
 
         elif instruction == compiler.OpCode.OP_MULTIPLY:
-            emulator = binary_op(emulator, "*")
+            frame = binary_op(frame, "*")
 
         elif instruction == compiler.OpCode.OP_DIVIDE:
-            emulator = binary_op(emulator, "//")
+            frame = binary_op(frame, "//")
+
+        elif instruction == compiler.OpCode.OP_NOT:
+            frame, not_value = pop(frame)
+
+            assert not isinstance(not_value, compiler.Function)
+            frame = push(frame, not helpers.is_truthy(not_value))
 
         elif instruction == compiler.OpCode.OP_NEGATE:
-            emulator, constant = pop(emulator)
-            constant = -constant
-            emulator = push(emulator, constant)
+            frame, negate_value = pop(frame)
+
+            assert isinstance(negate_value, int)
+            negate_value = -negate_value
+            frame = push(frame, -negate_value)
+
+        elif instruction == compiler.OpCode.OP_JUMP:
+            offset = shift(frame, 0)
+
+            if offset is None:
+                break
+
+            frame.ip += offset
+
+        elif instruction == compiler.OpCode.OP_JUMP_CONDITIONAL:
+            assert frame.slots is not None
+            condition = frame.slots[frame.slots_top - 1]
+
+            assert isinstance(condition, bool)
+
+            if helpers.is_truthy(condition):
+                offset = shift(frame, 0)
+            else:
+                offset = shift(frame, 1)
+
+            if offset is None:
+                break
+
+            frame.ip += offset
 
         elif instruction == compiler.OpCode.OP_PRINT:
-            emulator, individual_result = pop(emulator)
-            result.append(str(individual_result))
+            frame, print_value = pop(frame)
+            result.append(str(print_value if print_value is not None else "nil"))
+
+        elif instruction == compiler.OpCode.OP_CALL:
+            frame, call_value = read_byte(frame)
+
+            assert frame.slots is not None
+            assert isinstance(call_value, int)
+
+            function = frame.slots[frame.slots_top - 1 - call_value]
+
+            assert isinstance(function, compiler.Function)
+            emulator, frame, is_valid = call(emulator, frame, function, call_value)
+
+        elif instruction == compiler.OpCode.OP_RETURN:
+            frame, return_value = pop(frame)
+
+            emulator.frame_count -= 1
+
+            if emulator.frame_count == 0:
+                frame, return_value = pop(frame)
+
+                assert not isinstance(return_value, compiler.Function)
+                result.append(return_value)
+
+                return result
+
+            frame = emulator.frames[emulator.frame_count - 1]
+            frame = push(frame, return_value)
+
+        else:
+            raise Exception
 
     return result

@@ -9,7 +9,10 @@ import statem
 
 
 ResultTuple = Tuple[
-    List[token_class.Token], List[statem.Statem], Optional[List[compiler.ByteCode]]
+    List[token_class.Token],
+    List[statem.Statem],
+    Optional[List[compiler.Byte]],
+    Optional[compiler.Values],
 ]
 
 
@@ -18,22 +21,24 @@ def execute(source: str, convert_to_bytecode: bool = False) -> ResultTuple:
     searcher = scanner.init_scanner(source=source)
     tokens = scanner.scan(searcher)
 
-    processor = parser.init_parser(tokens=tokens, debug_level=1)
+    processor = parser.init_parser(tokens=tokens)
     statements = parser.parse(processor)
 
-    bytecode = None
+    bytecode, values = None, None
 
     if convert_to_bytecode:
         composer = compiler.init_compiler(statements=statements)
-        bytecode = compiler.compile(composer)
+        function = compiler.compile(composer)
 
-    return tokens, statements, bytecode
+        bytecode, values = function.bytecode, function.values
+
+    return tokens, statements, bytecode, values
 
 
-def test_expression():
+def test_expression() -> None:
     """ """
     source = "1 - (2 + 3);"
-    tokens, statements, bytecode = execute(source, convert_to_bytecode=True)
+    tokens, statements, bytecode, values = execute(source, convert_to_bytecode=True)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -61,8 +66,9 @@ Expression
                 Literal(3)"""
     )
 
+    assert bytecode is not None
     assert (
-        "\n".join(printer.convert(bytecode, counter=0))
+        "\n".join(printer.convert(bytecode, counter=0, values=values))
         == """\
 OpCode.OP_CONSTANT 1
 OpCode.OP_CONSTANT 2
@@ -73,7 +79,7 @@ OpCode.OP_POP"""
     )
 
     source = "5 * (2 - (3 + 4));"
-    tokens, statements, bytecode = execute(source, convert_to_bytecode=True)
+    tokens, statements, bytecode, values = execute(source, convert_to_bytecode=True)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -108,8 +114,9 @@ Expression
                         Literal(4)"""
     )
 
+    assert bytecode is not None
     assert (
-        "\n".join(printer.convert(bytecode, counter=0))
+        "\n".join(printer.convert(bytecode, counter=0, values=values))
         == """\
 OpCode.OP_CONSTANT 5
 OpCode.OP_CONSTANT 2
@@ -125,7 +132,7 @@ OpCode.OP_POP"""
 def test_assignment() -> None:
     """ """
     source = "let a; print a;"
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -148,7 +155,7 @@ Print
     )
 
     source = "let a = 1; print a;"
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -174,7 +181,7 @@ Print
     )
 
     source = "let a = 1; a = 2; print a + 3;"
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -234,7 +241,7 @@ print b;
 print c;
 """
 
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -341,10 +348,10 @@ Print
     )
 
 
-def test_basic_function():
+def test_basic_function() -> None:
     """ """
     source = "fun add(a, b) { print a + b; } add(1, 2);"
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -389,10 +396,10 @@ Expression
     )
 
 
-def test_recursive_function():
+def test_recursive_function() -> None:
     """ """
     source = "fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))
@@ -453,7 +460,7 @@ Expression
     source = (
         "fun fib(n) { if (n <= 1) return n; return fib(n - 2) + fib(n - 1); } fib(8);"
     )
-    tokens, statements, bytecode = execute(source)
+    tokens, statements, bytecode, values = execute(source)
 
     assert (
         "\n".join(printer.convert(tokens, counter=0))

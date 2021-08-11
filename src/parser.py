@@ -17,14 +17,11 @@ class Parser:
 
     tokens: List[token_class.Token]
     current: int = 0
-    debug_level: int = 0
-    debug_log: Optional[List[str]] = None
 
 
-def init_parser(tokens: List[token_class.Token], debug_level: int = 0) -> Parser:
+def init_parser(tokens: List[token_class.Token]) -> Parser:
     """ """
-    debug_log: List[str] = []
-    return Parser(tokens=tokens, debug_level=debug_level, debug_log=debug_log)
+    return Parser(tokens=tokens)
 
 
 def parse(processor: Parser) -> List[statem.Statem]:

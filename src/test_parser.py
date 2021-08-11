@@ -245,7 +245,7 @@ def test_basic_function() -> None:
 def test_recursive_function() -> None:
     """ """
     statements = source_to_statements(
-        source="fun count(n) { if (n> 1) count(n - 1); return n; } count(3);"
+        source="fun count(n) { if (n > 1) count(n - 1); return n; } count(3);"
     )
 
     function = statements[0]

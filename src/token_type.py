@@ -35,6 +35,7 @@ class TokenType(enum.Enum):
     FUN = "FUN"
     IF = "IF"
     LET = "LET"
+    NIL = "NIL"
     PRINT = "PRINT"
     RETURN = "RETURN"
 

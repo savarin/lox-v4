@@ -3,18 +3,16 @@ import dataclasses
 
 import environment
 import expr
+import helpers
 import statem
 import token_type
-
-
-Result = Union[int, str, None]
 
 
 @dataclasses.dataclass
 class Return(Exception):
     """ """
 
-    value: Union[Result, List[Result], statem.Function]
+    value: Union[helpers.Result, List[helpers.Result], statem.Function]
 
 
 @dataclasses.dataclass
@@ -35,9 +33,9 @@ def init_interpreter(
     return Interpreter(statements=statements, ecosystem=ecosystem)
 
 
-def interpret(inspector: Interpreter) -> List[Result]:
+def interpret(inspector: Interpreter) -> List[helpers.Result]:
     """ """
-    result: List[Result] = []
+    result: List[helpers.Result] = []
 
     for statement in inspector.statements:
         inspector, individual_result = execute(inspector, statement)
@@ -48,7 +46,7 @@ def interpret(inspector: Interpreter) -> List[Result]:
 
 def execute(
     inspector: Interpreter, statement: statem.Statem
-) -> Tuple[Interpreter, List[Result]]:
+) -> Tuple[Interpreter, List[helpers.Result]]:
     """ """
     assert inspector.ecosystem is not None
 
@@ -57,6 +55,7 @@ def execute(
         return execute_block(inspector, statement.statements, ecosystem)
 
     elif isinstance(statement, statem.Function):
+        assert statement.name.lexeme is not None
         inspector.ecosystem = environment.define(
             inspector.ecosystem, statement.name.lexeme, statement
         )
@@ -75,7 +74,7 @@ def execute(
         result = evaluate(inspector, statement.condition)
         assert isinstance(result, bool)
 
-        if is_truthy(result):
+        if helpers.is_truthy(result):
             return execute(inspector, statement.then_branch)
 
         elif statement.else_branch is not None:
@@ -87,7 +86,7 @@ def execute(
         result = evaluate(inspector, statement.expression)
         assert result is None or isinstance(result, int)
 
-        return inspector, [stringify(result)]
+        return inspector, [helpers.stringify(result)]
 
     elif isinstance(statement, statem.Return):
         value = None
@@ -108,6 +107,7 @@ def execute(
             or isinstance(value, statem.Function)
             or value is None
         )
+        assert statement.name.lexeme is not None
         inspector.ecosystem = environment.define(
             inspector.ecosystem, statement.name.lexeme, value
         )
@@ -121,9 +121,9 @@ def execute_block(
     inspector: Interpreter,
     statements: List[statem.Statem],
     ecosystem: environment.Environment,
-) -> Tuple[Interpreter, List[Result]]:
+) -> Tuple[Interpreter, List[helpers.Result]]:
     """ """
-    result: List[Result] = []
+    result: List[helpers.Result] = []
     previous = inspector.ecosystem
 
     try:
@@ -146,7 +146,7 @@ def execute_block(
 
 def evaluate(
     inspector: Interpreter, expression: expr.Expr
-) -> Union[Result, List[Result], statem.Function]:
+) -> Union[helpers.Result, List[helpers.Result], statem.Function]:
     """ """
     assert inspector.ecosystem is not None
 
@@ -169,10 +169,10 @@ def evaluate(
         assert right is None or isinstance(right, int)
 
         if individual_token == token_type.TokenType.BANG_EQUAL:
-            return not is_equal(left, right)
+            return not helpers.is_equal(left, right)
 
         elif individual_token == token_type.TokenType.EQUAL_EQUAL:
-            return is_equal(left, right)
+            return helpers.is_equal(left, right)
 
         assert isinstance(left, int) and isinstance(right, int)
 
@@ -235,11 +235,12 @@ def evaluate(
 
 def call(
     inspector: Interpreter, function: statem.Function, arguments: List[int]
-) -> Union[Result, List[Result], statem.Function]:
+) -> Union[helpers.Result, List[helpers.Result], statem.Function]:
     """ """
     ecosystem = environment.init_environment(inspector.ecosystem)
 
     for i, parameter in enumerate(function.parameters):
+        assert parameter.lexeme is not None
         ecosystem = environment.define(ecosystem, parameter.lexeme, arguments[i])
 
     try:
@@ -248,33 +249,3 @@ def call(
         return return_value.value
 
     return result
-
-
-def is_truthy(operand: Result) -> bool:
-    """ """
-    if operand is None:
-        return False
-
-    elif isinstance(operand, bool):
-        return operand
-
-    return True
-
-
-def is_equal(a: Optional[int], b: Optional[int]) -> bool:
-    """ """
-    if a is None and b is None:
-        return True
-
-    elif a is None or b is None:
-        return False
-
-    return a == b
-
-
-def stringify(operand: Optional[int]) -> str:
-    """ """
-    if operand is None:
-        return "nil"
-
-    return str(operand)
