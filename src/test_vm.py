@@ -99,10 +99,8 @@ print c;"""
 
 def test_basic_function() -> None:
     """ """
-    result = source_to_result(source="fun add(a, b) { print a + b; } add(1, 2);")
+    result = source_to_result(source="fun add(a, b) { return a + b; } print add(1, 2);")
 
     assert result[0] is None
     assert result[1] is None
     assert result[2] == "3"
-    assert result[3] == 2
-    assert result[4] == 1

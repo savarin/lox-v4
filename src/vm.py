@@ -249,18 +249,38 @@ def run(emulator: VM) -> List[helpers.Result]:
 
             frame.ip += offset
 
+        elif instruction == compiler.OpCode.OP_PRINT:
+            frame, print_value = pop(frame)
+            result.append(str(print_value if print_value is not None else "nil"))
+
         elif instruction == compiler.OpCode.OP_CALL:
             frame, call_value = read_byte(frame)
 
             assert frame.slots is not None
             assert isinstance(call_value, int)
+
             function = frame.slots[frame.slots_top - 1 - call_value]
 
             assert isinstance(function, compiler.Function)
             emulator, frame, is_valid = call(emulator, frame, function, call_value)
 
-        elif instruction == compiler.OpCode.OP_PRINT:
-            frame, print_value = pop(frame)
-            result.append(str(print_value if print_value is not None else "nil"))
+        elif instruction == compiler.OpCode.OP_RETURN:
+            frame, return_value = pop(frame)
+
+            emulator.frame_count -= 1
+
+            if emulator.frame_count == 0:
+                frame, return_value = pop(frame)
+
+                assert not isinstance(return_value, compiler.Function)
+                result.append(return_value)
+
+                return result
+
+            frame = emulator.frames[emulator.frame_count - 1]
+            frame = push(frame, return_value)
+
+        else:
+            raise Exception
 
     return result

@@ -11,7 +11,7 @@ import token_type
 Byte = Union["OpCode", int, None]
 
 
-INT_COUNT = 16
+INT_COUNT = 8
 
 
 class FunctionType(enum.Enum):
@@ -213,7 +213,11 @@ def execute(
         composer.listing.scope_depth -= 1
 
         # Execute function body with arguments in function scope.
-        composer, vector = execute_block(composer, vector, statement.body)
+        values = init_values()
+        composer, values = execute_block(composer, values, statement.body)
+
+        function = composer.function
+        function.values = values
 
         # Exit back to existing compiler.
         constant = composer.function
@@ -253,7 +257,7 @@ def execute(
         # branch and the start of the else branch in placeholders of first emit_jump.
         composer.function.bytecode[then_location] = 2
         composer.function.bytecode[then_location + 1] = (
-            len(composer.function.bytecode) - then_location - 1
+            len(composer.function.bytecode) - then_location
         )
 
         # Remove the condition result from the stack when the condition is false and jump to the
@@ -333,8 +337,7 @@ def evaluate(
         location = resolve_local(composer, expression.name)
 
         if location is not None:
-            composer.function.bytecode.append(OpCode.OP_SET)
-            composer.function.bytecode.append(location)
+            composer.function.bytecode += [OpCode.OP_SET, location]
 
             return composer, vector
 
@@ -386,8 +389,7 @@ def evaluate(
         location = resolve_local(composer, expression.name)
 
         if location is not None:
-            composer.function.bytecode.append(OpCode.OP_GET)
-            composer.function.bytecode.append(location)
+            composer.function.bytecode += [OpCode.OP_GET, location]
 
             return composer, vector
 
